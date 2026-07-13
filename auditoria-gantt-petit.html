@@ -772,7 +772,7 @@ function selByTipo(tipo) {
   });
   document.getElementById('modal-n').textContent = MODAL_SEL.length;
 }
-unction selAll() {
+function selAll() {
   MODAL_SEL = [];
   Object.keys(MANZANAS).forEach(function(mz) {
     Object.keys(MANZANAS[mz]).forEach(function(k) { MODAL_SEL.push(parseInt(k)); });
