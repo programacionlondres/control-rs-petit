@@ -153,6 +153,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ok{color:#1a9b5a}.diff{color:#cc4422}
 .ok-badge{background:#f0fff8;border:1px solid #bbffdd;color:#1a7a45;border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700}
 .diff-badge{background:#fff0ee;border:1px solid #ffccbb;color:#cc4422;border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700}
+.lote-diff{font-size:10px;margin-top:3px;text-align:left;line-height:1.3}
+.jt-only{color:#cc4422}.cal-only{color:#1a5aaa}
 .grp-sep{background:#f0f4fc;padding:5px 16px 5px 22px;font-size:10px;font-weight:700;color:#4455aa;text-transform:uppercase;letter-spacing:.4px;border-top:1px solid #eef}
 .cmp-sum{display:flex;border-top:2px solid #eef}
 .cmp-sum-item{flex:1;text-align:center;padding:12px 8px;border-right:1px solid #eef}
@@ -878,6 +880,13 @@ function showCompare() {
         }
         return Math.abs((jv||0) - (cv||0)) < 0.01;
       }
+      function loteDiff(jv, cv) {
+        var ja = Array.isArray(jv) ? jv : [];
+        var ca = Array.isArray(cv) ? cv : [];
+        var soloJt = ja.filter(function(n){ return ca.indexOf(n)<0; }).sort(function(a,b){return a-b;});
+        var soloCal = ca.filter(function(n){ return ja.indexOf(n)<0; }).sort(function(a,b){return a-b;});
+        return { soloJt: soloJt, soloCal: soloCal };
+      }
 
       var eq = eqVal(jv, cv, p.tipo);
       if (hasJt && hasCal) { if (eq) ok++; else diffs++; }
@@ -894,8 +903,15 @@ function showCompare() {
         difCell.innerHTML = '<span class="diff-badge">Solo ' + (hasJt ? 'JT' : 'CAL') + '</span>';
       } else if (eq) {
         difCell.innerHTML = '<span class="ok-badge">✓</span>';
+      } else if (p.tipo === 'viv') {
+        var ld = loteDiff(jv, cv);
+        var html = '<span class="diff-badge">✗</span>';
+        if (ld.soloJt.length)  html += '<div class="lote-diff jt-only">JT no CAL: <b>' + ld.soloJt.join(', ') + '</b></div>';
+        if (ld.soloCal.length) html += '<div class="lote-diff cal-only">CAL no JT: <b>' + ld.soloCal.join(', ') + '</b></div>';
+        difCell.innerHTML = html;
       } else {
-        difCell.innerHTML = '<span class="diff-badge">✗</span>';
+        var d = ((jv||0) - (cv||0)).toFixed(1);
+        difCell.innerHTML = '<span class="diff-badge">' + (d > 0 ? '+' : '') + d + '%</span>';
       }
 
       row.appendChild(jtCell); row.appendChild(calCell); row.appendChild(difCell);
