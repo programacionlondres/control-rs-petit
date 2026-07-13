@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Auditoría Interna Gantt – Petit</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a2e;font-size:14px}
+
+.header{background:linear-gradient(135deg,#1a2744,#0d1b38);color:white;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+.hlogo{font-size:10px;font-weight:800;letter-spacing:2px;color:#e8821a;text-transform:uppercase}
+.htitle{font-size:14px;font-weight:600;color:#e8e8f0}
+.hright{display:flex;align-items:center;gap:10px}
+.role-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.rb-jt{background:#1a6b3a;color:#7fffb0}.rb-cal{background:#1a4b8a;color:#7bc8ff}.rb-gaby{background:#6b1a5a;color:#ffb3f0}
+.week-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#ccd;padding:3px 8px;border-radius:5px;font-size:11px}
+.logout-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#ddeeff;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px}
+.logout-btn:hover{background:rgba(255,255,255,.18);color:white}
+
+.prog-wrap{background:#0d1b38;padding:6px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1e3060}
+.prog-txt{font-size:11px;color:#8899bb;white-space:nowrap}
+.prog-track{flex:1;height:5px;background:rgba(255,255,255,.1);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#1a9b5a,#22dd80);border-radius:3px;transition:width .4s}
+.prog-pct{font-size:12px;font-weight:700;color:#22dd80;min-width:34px;text-align:right}
+
+.screen{display:none}
+.screen.active{display:block}
+
+/* LOGIN */
+.login-wrap{min-height:calc(100vh - 54px);display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#1a2a50,#0a0f1f)}
+.login-card{background:#131c38;border:1px solid #243060;border-radius:14px;padding:36px 32px;width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.login-title{font-size:19px;font-weight:700;color:#e8e8f0;margin-bottom:3px}
+.login-sub{font-size:11px;color:#5566aa;margin-bottom:28px}
+.login-lbl{font-size:11px;color:#8899bb;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+.rbtn{width:100%;padding:12px 16px;margin-bottom:8px;border:2px solid;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;transition:all .15s;background:rgba(255,255,255,.03)}
+.rbtn:hover{transform:translateX(3px)}
+.rbtn.jt{border-color:#1a7a45;color:#5effa0}.rbtn.jt:hover{background:rgba(26,122,69,.15)}
+.rbtn.cal{border-color:#1a5aaa;color:#70c0ff}.rbtn.cal:hover{background:rgba(26,90,170,.15)}
+.rbtn.gaby{border-color:#8a1a7a;color:#ffaaee}.rbtn.gaby:hover{background:rgba(138,26,122,.15)}
+.rbtn-icon{font-size:20px}
+.rbtn-name{font-size:13px;font-weight:700}
+.rbtn-desc{font-size:10px;opacity:.6;margin-top:1px}
+
+/* AUDIT */
+.audit-wrap{max-width:860px;margin:0 auto;padding:14px 12px}
+
+.chapter{background:white;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden}
+.ch-hdr{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;background:#1a2744;color:white;user-select:none}
+.ch-hdr:hover{background:#1e2f54}
+.ch-arr{font-size:11px;transition:transform .22s;color:#8899bb;flex-shrink:0}
+.ch-arr.open{transform:rotate(90deg)}
+.ch-name{font-size:14px;font-weight:700;flex:1}
+.ch-stats{font-size:11px;color:#8899bb;white-space:nowrap}
+.ch-bar{width:70px;height:4px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden;flex-shrink:0}
+.ch-bar-fill{height:100%;background:#22dd80;border-radius:2px;transition:width .3s}
+.ch-body{display:none}
+.ch-body.open{display:block}
+
+.group{border-top:2px solid #d8e0f0}
+.grp-hdr{display:flex;align-items:center;gap:8px;padding:9px 16px;cursor:pointer;background:#e4ecf8;user-select:none}
+.grp-hdr:hover{background:#d8e4f5}
+.grp-arr{font-size:10px;color:#4466aa;transition:transform .2s;flex-shrink:0}
+.grp-arr.open{transform:rotate(90deg)}
+.grp-name{font-size:12px;font-weight:700;color:#1a2744;flex:1;text-transform:uppercase;letter-spacing:.5px}
+.grp-stats{font-size:11px;color:#8899bb}
+.grp-bar{width:60px;height:3px;background:#c0ceea;border-radius:2px;overflow:hidden;flex-shrink:0}
+.grp-bar-fill{height:100%;background:#3388dd;border-radius:2px;transition:width .3s}
+.grp-body{display:none}
+.grp-body.open{display:block}
+
+.section{border-top:1px solid #eef0f8}
+.sec-hdr{display:flex;align-items:center;gap:8px;padding:8px 16px 8px 28px;cursor:pointer;background:#f6f8fd;user-select:none}
+.sec-hdr:hover{background:#eef1fa}
+.sec-arr{font-size:9px;color:#99aac0;transition:transform .18s;flex-shrink:0}
+.sec-arr.open{transform:rotate(90deg)}
+.sec-name{font-size:11px;font-weight:700;color:#2c4070;flex:1;text-transform:uppercase;letter-spacing:.4px}
+.sec-count{font-size:10px;color:#aab}
+.sec-bar{width:50px;height:3px;background:#e0e5ef;border-radius:2px;overflow:hidden;flex-shrink:0}
+.sec-bar-fill{height:100%;background:#1a9b5a;border-radius:2px;transition:width .3s}
+.sec-body{display:none;padding-bottom:2px}
+.sec-body.open{display:block}
+
+.p-row{display:flex;align-items:center;gap:8px;padding:7px 16px 7px 40px;border-top:1px solid #f0f3f8;transition:background .1s}
+.p-row:hover{background:#fafbff}
+.p-row.filled{background:#f4fff8}
+.p-row.direct{padding-left:28px}
+.p-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .2s}
+.p-dot.empty{background:#dde2ea}.p-dot.done{background:#1a9b5a}
+.p-num{font-size:10px;color:#c0c8d8;min-width:24px;text-align:right;flex-shrink:0}
+.p-name{flex:1;font-size:12px;color:#334;line-height:1.3}
+.p-inc{font-size:10px;color:#aab;min-width:40px;text-align:right;flex-shrink:0}
+.p-inp{min-width:120px;display:flex;align-items:center;justify-content:flex-end;gap:4px;flex-shrink:0}
+
+.pct-wrap{display:flex;align-items:center;gap:3px}
+.pct-input{width:64px;padding:5px 7px;border:1.5px solid #d0d8e8;border-radius:5px;font-size:13px;font-weight:600;color:#224;text-align:right;background:#fafbff;transition:border-color .15s}
+.pct-input:focus{outline:none;border-color:#4488cc;background:white}
+.pct-input.filled{border-color:#1a9b5a;background:#f0fff7}
+.pct-sym{font-size:11px;color:#8899bb}
+
+.viv-btn{padding:5px 10px;border-radius:5px;border:1.5px solid #cc8822;background:#fff8f0;color:#7a4800;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s;white-space:nowrap}
+.viv-btn:hover{background:#ffe8cc;border-color:#e8821a}
+.viv-btn.filled{background:#fff0d8;border-color:#e8821a}
+.viv-cnt{background:#e8821a;color:white;border-radius:10px;padding:1px 5px;font-size:9px;font-weight:700;min-width:18px;text-align:center}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;justify-content:center;align-items:center}
+.modal-ov.open{display:flex}
+.modal-box{background:white;border-radius:13px;width:94vw;max-width:760px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.modal-top{background:#1a2744;color:white;padding:12px 18px;display:flex;align-items:center;justify-content:space-between}
+.modal-tit{font-size:13px;font-weight:700}
+.modal-sub{font-size:10px;color:#8899bb;margin-top:2px}
+.modal-x{background:none;border:none;color:#8899bb;font-size:18px;cursor:pointer}
+.modal-x:hover{color:white}
+.modal-body{padding:14px;overflow-y:auto;flex:1}
+.modal-foot{padding:10px 18px;border-top:1px solid #eef;display:flex;align-items:center;justify-content:space-between}
+.modal-sel{font-size:11px;color:#5566aa}
+.modal-n{font-weight:700;color:#1a9b5a}
+.confirm-btn{padding:7px 18px;background:#1a6b3a;color:white;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer}
+.confirm-btn:hover{background:#138030}
+
+.quick-bar{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.qb-lbl{font-size:10px;color:#8899bb}
+.qchip{padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;cursor:pointer;border:1.5px solid;transition:all .12s}
+.qchip.sm1{border-color:#4488dd;color:#2266bb;background:#eef5ff}.qchip.sm2{border-color:#44aa55;color:#228833;background:#eefff2}
+.qchip.vul{border-color:#dd8833;color:#aa5500;background:#fff8ee}.qchip.emer{border-color:#aa55bb;color:#773399;background:#fcf0ff}
+.qchip.all{border-color:#8899bb;color:#4455aa;background:#f4f6fb}.qchip.none{border-color:#ccccdd;color:#8899bb;background:#fafafa}
+.qchip:hover{opacity:.8}
+
+.mz-wrap{margin-bottom:12px}
+.mz-lbl{font-size:10px;font-weight:700;color:#2c4070;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;display:flex;align-items:center;gap:5px}
+.mz-badge{background:#1a2744;color:white;padding:1px 6px;border-radius:3px;font-size:9px}
+.lotes-grid{display:flex;flex-wrap:wrap;gap:3px}
+.lote{width:32px;height:32px;border-radius:5px;border:1.5px solid #d0d8e8;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#556;cursor:pointer;transition:all .1s;background:#f8f9fd;user-select:none}
+.lote:hover{border-color:#e8821a;background:#fff3e0}
+.lote.sel{background:#e8821a;border-color:#c06010;color:white}
+.lote.sm1{border-color:#b8d0f0;background:#ddeeff}.lote.sm1.sel{background:#4488dd;border-color:#2266bb;color:white}
+.lote.sm2{border-color:#c0d8b8;background:#ddf0dd}.lote.sm2.sel{background:#44aa55;border-color:#228833;color:white}
+.lote.vul{border-color:#f0d0b0;background:#fff0d8}.lote.vul.sel{background:#dd8833;border-color:#bb6611;color:white}
+.lote.emer{border-color:#e0b8d8;background:#f8e8f8}.lote.emer.sel{background:#aa55bb;border-color:#883399;color:white}
+
+/* COMPARE */
+.cmp-wrap{max-width:1050px;margin:0 auto;padding:14px 12px}
+.cmp-card{background:white;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;margin-bottom:10px}
+.cmp-top{background:#1a2744;color:white;padding:12px 18px}
+.cmp-top-tit{font-size:14px;font-weight:700}
+.cmp-hrow{display:grid;grid-template-columns:1fr 170px 170px 60px;gap:6px;padding:7px 16px;background:#e4ecf8;font-size:10px;font-weight:700;color:#2c4070;text-transform:uppercase;letter-spacing:.5px}
+.cmp-row{display:grid;grid-template-columns:1fr 170px 170px 60px;gap:6px;padding:7px 16px;border-top:1px solid #f0f2f8;align-items:center}
+.cmp-row:hover{background:#fafbff}
+.cmp-pn{font-size:11px;color:#334}
+.cmp-pnum{font-size:9px;color:#aab;margin-right:3px}
+.cmp-val{text-align:center;font-weight:700;font-size:12px}
+.ok{color:#1a9b5a}.diff{color:#cc4422}
+.ok-badge{background:#f0fff8;border:1px solid #bbffdd;color:#1a7a45;border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700}
+.diff-badge{background:#fff0ee;border:1px solid #ffccbb;color:#cc4422;border-radius:4px;padding:2px 5px;font-size:10px;font-weight:700}
+.grp-sep{background:#f0f4fc;padding:5px 16px 5px 22px;font-size:10px;font-weight:700;color:#4455aa;text-transform:uppercase;letter-spacing:.4px;border-top:1px solid #eef}
+.cmp-sum{display:flex;border-top:2px solid #eef}
+.cmp-sum-item{flex:1;text-align:center;padding:12px 8px;border-right:1px solid #eef}
+.cmp-sum-item:last-child{border-right:none}
+.cmp-sum-n{font-size:22px;font-weight:800}
+.cmp-sum-lbl{font-size:10px;color:#5566aa;margin-top:2px}
+
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #e0e5ef;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 -2px 12px rgba(0,0,0,.1);z-index:90}
+.nav-links{display:flex;gap:6px}
+.nav-btn{padding:7px 12px;background:#f0f2f8;border:1px solid #d8dce8;border-radius:7px;font-size:11px;color:#4455aa;cursor:pointer;font-weight:600;transition:all .15s}
+.nav-btn:hover{background:#e0e5f8}
+.nav-btn.active{background:#1a2744;color:white;border-color:#1a2744}
+.save-btn{padding:8px 20px;background:#1a6b3a;color:white;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer}
+.save-btn:hover{background:#138030}
+.save-st{font-size:10px;color:#aab}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="hlogo">Constructora Londres</div>
+    <div class="htitle">Auditoría Interna Gantt &middot; Obra Petit</div>
+  </div>
+  <div class="hright">
+    <div class="week-pill" id="week-pill">📅 Cargando…</div>
+    <div class="role-badge" id="role-badge" style="display:none"></div>
+    <button class="logout-btn" id="btn-logout" style="display:none">← Cambiar rol</button>
+  </div>
+</div>
+
+<div class="prog-wrap" id="prog-wrap" style="display:none">
+  <span class="prog-txt" id="prog-txt">0 / 295</span>
+  <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+  <span class="prog-pct" id="prog-pct">0%</span>
+</div>
+
+<div id="sc-login" class="screen active">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-title">Auditoría Gantt</div>
+      <div class="login-sub">Obra Enriqueta Petit &middot; Semana 11/07/2026</div>
+      <div class="login-lbl">&#191;Qui&eacute;n eres?</div>
+      <button class="rbtn jt" id="btn-jt">
+        <span class="rbtn-icon">&#128119;</span>
+        <div><div class="rbtn-name">Jefe de Terreno</div><div class="rbtn-desc">Registrar avance desde terreno</div></div>
+      </button>
+      <button class="rbtn cal" id="btn-cal">
+        <span class="rbtn-icon">&#128203;</span>
+        <div><div class="rbtn-name">Calidad</div><div class="rbtn-desc">Registrar avance control de calidad</div></div>
+      </button>
+      <button class="rbtn gaby" id="btn-gaby">
+        <span class="rbtn-icon">&#128269;</span>
+        <div><div class="rbtn-name">Comparaci&oacute;n</div><div class="rbtn-desc">Ver diferencias entre registros</div></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PIN SCREEN -->
+<div id="sc-pin" class="screen">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-title" id="pin-title">Jefe de Terreno</div>
+      <div class="login-sub" id="pin-semana">Ingresa tu PIN de acceso</div>
+      <div style="margin:24px 0">
+        <input id="pin-input" type="password" inputmode="numeric" maxlength="4"
+          style="width:100%;text-align:center;font-size:32px;font-weight:800;letter-spacing:12px;padding:14px;border:2px solid #243060;border-radius:10px;background:#0d1b38;color:#e8e8f0;outline:none"
+          placeholder="&#9679;&#9679;&#9679;&#9679;">
+      </div>
+      <div id="pin-error" style="color:#ff6666;font-size:12px;margin-bottom:12px;min-height:18px;text-align:center"></div>
+      <button id="pin-confirm"
+        style="width:100%;padding:13px;background:#1a6b3a;color:white;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer">
+        Entrar &#10132;
+      </button>
+      <button id="pin-back"
+        style="width:100%;padding:10px;background:none;border:none;color:#5566aa;font-size:12px;cursor:pointer;margin-top:8px">
+        &#8592; Volver
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="sc-audit" class="screen">
+  <div class="audit-wrap" id="audit-container"></div>
+  <div style="height:68px"></div>
+</div>
+
+<div id="sc-compare" class="screen">
+  <div class="cmp-wrap" id="cmp-container"></div>
+  <div style="height:68px"></div>
+</div>
+
+<div class="modal-ov" id="modal">
+  <div class="modal-box">
+    <div class="modal-top">
+      <div>
+        <div class="modal-tit">Seleccionar Viviendas</div>
+        <div class="modal-sub" id="modal-sub"></div>
+      </div>
+      <button class="modal-x" id="modal-x">&#10005;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <div class="modal-sel"><span class="modal-n" id="modal-n">0</span> viviendas seleccionadas</div>
+      <button class="confirm-btn" id="modal-confirm">&#10003; Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-bar" id="bottom-bar" style="display:none">
+  <div class="nav-links">
+    <button class="nav-btn active" id="btn-nav-audit">&#128221; Partidas</button>
+    <button class="nav-btn" id="btn-nav-cmp">&#128202; Comparar</button>
+  </div>
+  <span class="save-st" id="save-st">Sin guardar</span>
+  <button class="save-btn" id="save-btn">&#128190; Guardar</button>
+</div>
+
+<script>
+var CHAPTERS = [{"id": "OP", "titulo": "OBRAS PREVIAS", "sections": [{"titulo": "LEV. TOPOGRAFIA Y TRAZADO", "partidas": [{"id": 3, "nombre": "LEVANTAMIENTO TOPOGRAFÍA Y TRAZADO", "inc": 0.051846, "tipo": "pct"}]}, {"titulo": "ESCARPE", "partidas": [{"id": 5, "nombre": "ESCARPE", "inc": 0.163376, "tipo": "pct"}]}, {"titulo": "CORTES - RELLENOS", "partidas": [{"id": 7, "nombre": "CORTE-RELLENO", "inc": 0.054905, "tipo": "pct"}]}, {"titulo": "PLATAFORMAS", "partidas": [{"id": 9, "nombre": "PLATAFORMAS", "inc": 0.456946, "tipo": "pct"}, {"id": 10, "nombre": "TOPOGRAFIA MANZANAS Y LOTES", "inc": 0.272927, "tipo": "pct"}]}]}, {"id": "VIV", "titulo": "VIVIENDAS", "groups": [{"titulo": "OBRA GRUESA", "sections": [{"titulo": "OG - FUNDACIÓN", "partidas": [{"id": 13, "nombre": "F-TRAZADO DE FUNDACIÓN", "inc": 0.001365, "tipo": "viv"}, {"id": 14, "nombre": "F-INSTALACIÓN NIVELETAS", "inc": 0.001076, "tipo": "viv"}, {"id": 15, "nombre": "F-EXCAVACIÓN FUNDACIONES Y PERFILADO", "inc": 0.00764, "tipo": "viv"}, {"id": 16, "nombre": "F-RECEPCIÓN SELLO", "inc": 0.000323, "tipo": "viv"}, {"id": 17, "nombre": "F-EMPLANTILLADO", "inc": 0.00618, "tipo": "viv"}, {"id": 18, "nombre": "F-TRAZADO DE EMPLANTILLADO", "inc": 0.000365, "tipo": "viv"}, {"id": 19, "nombre": "F-ARMADURA FUNDACIÓN", "inc": 0.00678, "tipo": "viv"}, {"id": 20, "nombre": "F-INSTALACIÓN GUÍAS Y TENSORES", "inc": 0.002906, "tipo": "viv"}, {"id": 21, "nombre": "F-HORMIGÓN CIMIENTO", "inc": 0.016409, "tipo": "viv"}, {"id": 22, "nombre": "F-TRAZADO SOBRECIMIENTO", "inc": 0.000365, "tipo": "viv"}, {"id": 23, "nombre": "F-ENFIERRADURA SOBRECIMIENTO", "inc": 0.003111, "tipo": "viv"}, {"id": 24, "nombre": "F-MOLDAJE SOBRECIMIENTO", "inc": 0.004552, "tipo": "viv"}, {"id": 25, "nombre": "F-HORMIGÓN SOBRECIMIENTO", "inc": 0.003467, "tipo": "viv"}, {"id": 26, "nombre": "F-DESCIMBRE MOLDAJE SOBRECIMIENTO", "inc": 0.000913, "tipo": "viv"}, {"id": 27, "nombre": "F-RELLENO COMPACTADO PERIMETRAL", "inc": 0.006365, "tipo": "viv"}, {"id": 28, "nombre": "F-EXCAVACIÓN PLANTA ALCANTARILLADO", "inc": 0.003391, "tipo": "viv"}, {"id": 29, "nombre": "F-INSTALACIÓN PLANTA ALCANTARILLADO", "inc": 0.006963, "tipo": "viv"}, {"id": 30, "nombre": "F-PRUEBA PLANTA ALCANTARILLADO + TAPADO", "inc": 0.001304, "tipo": "viv"}, {"id": 31, "nombre": "POLIESTINLENO EXPANDIDO EN SOBRECIEMIENTO", "inc": 0.000857, "tipo": "viv"}, {"id": 32, "nombre": "F-RELLENO INTERIOR C/BASE", "inc": 0.006755, "tipo": "viv"}, {"id": 33, "nombre": "F-CAMA DE RIPIO + POLIETILENO", "inc": 0.004353, "tipo": "viv"}, {"id": 34, "nombre": "F-HORMIGÓN RADIER", "inc": 0.012086, "tipo": "viv"}, {"id": 35, "nombre": "F-IMPERMEABILIZACIÓN HOMBROS", "inc": 0.002968, "tipo": "viv"}]}, {"titulo": "OG - MUROS Y LOSA PISO 1", "partidas": [{"id": 37, "nombre": "TRAZADO MURO (PISO 1)", "inc": 0.005181, "tipo": "viv"}, {"id": 38, "nombre": "ENFIERRADURA MUROS (PISO 1)", "inc": 0.012445, "tipo": "viv"}, {"id": 39, "nombre": "DISTRIBUCIÓN INSTALACIONES (PISO 1)", "inc": 0.018005, "tipo": "viv"}, {"id": 40, "nombre": "PASADAS + VENTILACIÓN PASIVA Y EXTRACTOR (PISO 1)", "inc": 0.00248, "tipo": "viv"}, {"id": 41, "nombre": "MOLDAJE MUROS INTERIOR Y LOSA (PISO 1)", "inc": 0.033775, "tipo": "viv"}, {"id": 42, "nombre": "TRAZADO Y ENFIERRADURA LOSA (PISO 1)", "inc": 0.014291, "tipo": "viv"}, {"id": 43, "nombre": "INSTALACIÓN ELÉCTRICA-SANITARIA-PASADAS ALC LOSA", "inc": 0.011736, "tipo": "viv"}, {"id": 44, "nombre": "REBALSE LOSA + JUNTA EN FRÍO (PISO 1)", "inc": 0.000365, "tipo": "viv"}, {"id": 45, "nombre": "HORMIGÓN MUROS Y LOSA (PISO 1)", "inc": 0.036165, "tipo": "viv"}, {"id": 46, "nombre": "DESCIMBRE MUROS Y LOSA (PISO 1)", "inc": 0.00119, "tipo": "viv"}, {"id": 47, "nombre": "REVISIÓN Y RECTIFICACIÓN DE HORMIGÓN 1 PISO", "inc": 0.003116, "tipo": "viv"}]}, {"titulo": "OG - MUROS HORMIGÓN ARMADO PISO 2", "partidas": [{"id": 49, "nombre": "TRAZADO DE MUROS MEDIANERO", "inc": 0.000181, "tipo": "viv"}, {"id": 50, "nombre": "ENFIERRADURA MURO MEDIANERO", "inc": 0.006308, "tipo": "viv"}, {"id": 51, "nombre": "DISTRIBUCIÓN ELÉCTRICA MEDIANERO", "inc": 0.003016, "tipo": "viv"}, {"id": 52, "nombre": "MOLDAJE MURO MEDIANERO", "inc": 0.009353, "tipo": "viv"}, {"id": 53, "nombre": "ARMADO DE ANDAMIOS MEDIANERO", "inc": 0.010073, "tipo": "viv"}, {"id": 54, "nombre": "HORMIGÓN MURO MEDIANERO", "inc": 0.009986, "tipo": "viv"}, {"id": 55, "nombre": "DESCIMBRE MURO MEDIANERO", "inc": 0.000469, "tipo": "viv"}, {"id": 56, "nombre": "REVISIÓN Y RECTIFICACIÓN DE HORMIGÓN MEDIANERO", "inc": 0.000239, "tipo": "viv"}]}, {"titulo": "OG - ESTRUCTURA MURO PERIMETRAL PISO 2", "partidas": [{"id": 58, "nombre": "TRAZADO DE MURO PERIMETRAL", "inc": 0.001313, "tipo": "viv"}, {"id": 59, "nombre": "ESTRUCTURA ACERO GALVANIZADO M. PERIMETRAL", "inc": 0.022056, "tipo": "viv"}]}, {"titulo": "OG - TECHUMBRE PISO 2", "partidas": [{"id": 61, "nombre": "OG - TECHUMBRE - ESTRUCTURA Y ARRIOSTRAMIENTOS", "inc": 0.025407, "tipo": "viv"}, {"id": 62, "nombre": "OG - TECHUMBRE - FRONTÓN Y MURO CORTAFUEGO", "inc": 0.008499, "tipo": "viv"}, {"id": 63, "nombre": "OG - TECHUMBRE - COLOCACIÓN DE FIELTRO + CUBIERTA", "inc": 0.015384, "tipo": "viv"}, {"id": 64, "nombre": "OG - TECHUMBRE - COLOCACIÓN EIFS", "inc": 0.028696, "tipo": "viv"}]}, {"titulo": "OG - FORRO MUROS PERIMETRAL PISO 2", "partidas": [{"id": 66, "nombre": "REVESTIMIENTO EXTERIOR SIDING", "inc": 0.018114, "tipo": "viv"}, {"id": 67, "nombre": "HOJALATERÍA SIDING", "inc": 0.012347, "tipo": "viv"}, {"id": 68, "nombre": "VENTILACÓN PASIVA", "inc": 0.00288, "tipo": "viv"}, {"id": 69, "nombre": "LISTONEO ALERO + TAPACÁN", "inc": 0.002325, "tipo": "viv"}, {"id": 70, "nombre": "PINTURA TAPACÁN ALERO", "inc": 0.001186, "tipo": "viv"}, {"id": 71, "nombre": "CELOSÍA VENTILACIÓN", "inc": 0.000237, "tipo": "viv"}, {"id": 72, "nombre": "COLOCACIÓN CANAL Y BAJADA ALL 2 PISO", "inc": 0.001714, "tipo": "viv"}]}]}, {"titulo": "TERMINACIONES GRUESAS", "sections": [{"titulo": "TG - GRUPO 1", "partidas": [{"id": 77, "nombre": "DESCARACHADO Y PULIDO", "inc": 0.004674, "tipo": "viv"}, {"id": 78, "nombre": "TAPADO VAINAS", "inc": 0.0022, "tipo": "viv"}, {"id": 79, "nombre": "ACOMETIDA AP", "inc": 0.006606, "tipo": "viv"}, {"id": 80, "nombre": "AGUA POTABLE 1 PISO", "inc": 0.010948, "tipo": "viv"}, {"id": 81, "nombre": "CAJAS ELECTRICAS 1 PIOS", "inc": 0.010869, "tipo": "viv"}, {"id": 82, "nombre": "TRAZADO RASGOS", "inc": 0.001903, "tipo": "viv"}, {"id": 83, "nombre": "REMATE DE RASGOS VENTANAS Y PUERTAS", "inc": 0.00666, "tipo": "viv"}, {"id": 84, "nombre": "IMPERMEABILIZACIÓN VANOS", "inc": 0.001949, "tipo": "viv"}]}, {"titulo": "TG - GRUPO 2", "partidas": [{"id": 86, "nombre": "INST. MARCO DE PUERTA ACCESO Y COCINA", "inc": 0.004786, "tipo": "viv"}, {"id": 87, "nombre": "FAJEO YESO MURO Y LOSA", "inc": 0.014251, "tipo": "viv"}, {"id": 88, "nombre": "REMATES Y CUADRATURAS DE YESO", "inc": 0.009501, "tipo": "viv"}, {"id": 89, "nombre": "INSTALACIÓN ESCALA", "inc": 0.01659, "tipo": "viv"}, {"id": 90, "nombre": "INSTALACIÓN DE TAPA CAJÓN, MARCO Y TAPA GATERA", "inc": 0.001428, "tipo": "viv"}]}, {"titulo": "TG - GRUPO 3", "partidas": [{"id": 92, "nombre": "INSTALACIÓN PUERTA ACCESO Y COCINA", "inc": 0.012262, "tipo": "viv"}, {"id": 93, "nombre": "INSTALACIÓN VENTANAS", "inc": 0.032296, "tipo": "viv"}, {"id": 94, "nombre": "DISTRIBUCIÓN ELÉCTRICA M. PERIMETRAL", "inc": 0.004338, "tipo": "viv"}, {"id": 95, "nombre": "AISLACIÓN + TAPADO 2DA CARA M. PERIMETRAL", "inc": 0.006419, "tipo": "viv"}, {"id": 96, "nombre": "ESTRUCTURACIÓN CIELO", "inc": 0.005376, "tipo": "viv"}, {"id": 97, "nombre": "INSTALACIÓN ELÉCTRICA CIELO", "inc": 0.008674, "tipo": "viv"}, {"id": 98, "nombre": "AISLACIÓN + TAPADO CIELO", "inc": 0.011963, "tipo": "viv"}]}, {"titulo": "TG - GRUPO 4", "partidas": [{"id": 100, "nombre": "TRAZADO TABIQUES", "inc": 0.001086, "tipo": "viv"}, {"id": 101, "nombre": "ESTRUCTURA TABIQUES 1a CARA", "inc": 0.009565, "tipo": "viv"}, {"id": 102, "nombre": "SHAFT VERTICALES Y HORIZONTALES", "inc": 0.002437, "tipo": "viv"}, {"id": 103, "nombre": "DESCARGA DE ALCANT. + DIST. AGUA POTABLE", "inc": 0.000798, "tipo": "viv"}, {"id": 104, "nombre": "DISTRIBUCIÓN ELÉCTRICA", "inc": 0.009616, "tipo": "viv"}, {"id": 105, "nombre": "PRUEBA DE PRESIÓN", "inc": 0.001087, "tipo": "viv"}, {"id": 106, "nombre": "TAPADO TABIQUES 2a CARA + REFUERZOS", "inc": 0.014798, "tipo": "viv"}, {"id": 107, "nombre": "INSTALACIÓN DE TAPACANTOS", "inc": 0.001282, "tipo": "viv"}, {"id": 108, "nombre": "ESTRUCTURACIÓN TINA", "inc": 0.000951, "tipo": "viv"}]}, {"titulo": "TG - GRUPO 5", "partidas": [{"id": 110, "nombre": "IMPERMEABILIZACIÓN ZONAS HÚMEDAS", "inc": 0.000679, "tipo": "viv"}, {"id": 111, "nombre": "INSTALACIÓN TINAS", "inc": 0.006207, "tipo": "viv"}, {"id": 112, "nombre": "INST. PUERTAS PRE COLGADAS", "inc": 0.016105, "tipo": "viv"}, {"id": 113, "nombre": "CERÁMICOS DE PISO", "inc": 0.005726, "tipo": "viv"}, {"id": 114, "nombre": "CERÁMICOS DE MUROS", "inc": 0.006236, "tipo": "viv"}, {"id": 115, "nombre": "FRAGUE CERÁMICOS", "inc": 0.000693, "tipo": "viv"}]}, {"titulo": "TG - GRUPO 6", "partidas": [{"id": 117, "nombre": "HUINCHAS TABIQUES Y CIELOS", "inc": 0.015512, "tipo": "viv"}, {"id": 118, "nombre": "RETAPE DE PISOS", "inc": 0.003937, "tipo": "viv"}, {"id": 119, "nombre": "EMPASTE Y LIJADO", "inc": 0.0101, "tipo": "viv"}, {"id": 120, "nombre": "COLOCACIÓN CORNISAS", "inc": 0.006248, "tipo": "viv"}, {"id": 121, "nombre": "HUINCHA YESO CARTÓN EN VANOS DE VENTANA 2 PISO", "inc": 0.004654, "tipo": "viv"}, {"id": 122, "nombre": "EXTRACCIÓN FORZADA", "inc": 0.00248, "tipo": "viv"}]}]}, {"titulo": "TERMINACIONES FINAS", "sections": [{"titulo": "TF - GRUPO 7", "partidas": [{"id": 126, "nombre": "F-MALLA DE TIERRA", "inc": 0.002155, "tipo": "viv"}, {"id": 127, "nombre": "ALAMBRADO ELÉCTRICO", "inc": 0.009562, "tipo": "viv"}, {"id": 128, "nombre": "TABLERO, MÓDULOS Y ARTEFACTOS ELÉCTRICOS", "inc": 0.004031, "tipo": "viv"}, {"id": 129, "nombre": "EXCAVACIÓN MALLA TIERRA", "inc": 0.001087, "tipo": "viv"}, {"id": 130, "nombre": "INSTALACIÓN MALLA TIERRA", "inc": 0.001087, "tipo": "viv"}, {"id": 131, "nombre": "PRUEBAS ELECTRICAS Y MALLA TIERRA SUPERVISÓN CASA", "inc": 0.000474, "tipo": "viv"}, {"id": 132, "nombre": "ENTREGA PRUEBAS ELECTRICAS Y MALLA TIERRA CALIDAD", "inc": 0.000474, "tipo": "viv"}]}, {"titulo": "TF - GRUPO 8", "partidas": [{"id": 134, "nombre": "PINTURA 1a MANO CIELOS", "inc": 0.006018, "tipo": "viv"}, {"id": 135, "nombre": "PINTURA LOSALÍN CIELOS", "inc": 0.008076, "tipo": "viv"}, {"id": 136, "nombre": "PINTURA 1a MANO MUROS", "inc": 0.006018, "tipo": "viv"}, {"id": 137, "nombre": "PINTURA 1a MANO BARANDAS Y ESCALA", "inc": 0.003002, "tipo": "viv"}, {"id": 138, "nombre": "PINTURA 1a MANO PUERTAS Y GUARDAPOLVOS", "inc": 0.002051, "tipo": "viv"}, {"id": 139, "nombre": "RECORRIDO MUROS", "inc": 0.002634, "tipo": "viv"}]}, {"titulo": "TF - GRUPO 9", "partidas": [{"id": 141, "nombre": "INSTALACIÓN ARTEFACTOS SANITARIOS", "inc": 0.008164, "tipo": "viv"}, {"id": 142, "nombre": "QUINCALLERÍA PUERTAS", "inc": 0.002196, "tipo": "viv"}, {"id": 143, "nombre": "INSTALACIÓN DE CLOSET", "inc": 0.018711, "tipo": "viv"}, {"id": 144, "nombre": "INSTALACIÓN MUEBLES DE COCINA", "inc": 0.004111, "tipo": "viv"}, {"id": 145, "nombre": "INSTALACIÓN LAVAPLATOS", "inc": 0.002486, "tipo": "viv"}, {"id": 146, "nombre": "COLOCACIÓN DE GRIFERÍAS", "inc": 0.004672, "tipo": "viv"}, {"id": 147, "nombre": "ASEO FINO (R0)", "inc": 0.003295, "tipo": "viv"}]}, {"titulo": "TF - GRUPO 10", "partidas": [{"id": 149, "nombre": "PINTURA 2a MANO CIELOS", "inc": 0.003133, "tipo": "viv"}, {"id": 150, "nombre": "PINTURA 2a MANO MUROS", "inc": 0.006018, "tipo": "viv"}, {"id": 151, "nombre": "PINTURA 2a MANO PUERTAS Y GUARDAPOLVOS", "inc": 0.002581, "tipo": "viv"}, {"id": 152, "nombre": "PINTURA 2a MANO BARANDAS Y ESCALA", "inc": 0.002051, "tipo": "viv"}]}]}, {"titulo": "FACHADAS", "sections": [{"titulo": "TF - GRUPO 11", "partidas": [{"id": 155, "nombre": "DESBASTE", "inc": 0.003262, "tipo": "viv"}, {"id": 156, "nombre": "REMATES DE FACHADA Y RASGOS", "inc": 0.001368, "tipo": "viv"}, {"id": 157, "nombre": "MAQUILLAJE FACHADA", "inc": 0.00047, "tipo": "viv"}, {"id": 158, "nombre": "AISLACIÓN LOSA VENTILADA", "inc": 0.000841, "tipo": "viv"}, {"id": 159, "nombre": "IMPERMEABILIZACIÓN FACHADAS", "inc": 0.001949, "tipo": "viv"}]}, {"titulo": "FACH - GRUPO 12", "partidas": [{"id": 161, "nombre": "PINTURA FONDO FACHADA", "inc": 0.001904, "tipo": "viv"}, {"id": 162, "nombre": "GRANO DE FACHADA", "inc": 0.007615, "tipo": "viv"}, {"id": 163, "nombre": "PINTURA PRIMERA MANO", "inc": 0.010859, "tipo": "viv"}, {"id": 164, "nombre": "REMATE SELLOS", "inc": 0.004477, "tipo": "viv"}, {"id": 165, "nombre": "INSTALACIÓN BAJADAS DE ALL (PISO 1)", "inc": 0.001485, "tipo": "viv"}, {"id": 166, "nombre": "PINTURA FINAL", "inc": 0.001976, "tipo": "viv"}]}]}, {"titulo": "EXTERIORES (PATIOS)", "sections": [{"titulo": "EXT - GRUPO 1", "partidas": [{"id": 169, "nombre": "EXCAVACIÓN ACOMETIDA A.POTABLE Y ALCANTARILLADO", "inc": 0.004694, "tipo": "viv"}, {"id": 170, "nombre": "TUBERÍAS ACOMETIDA A.POTABLE Y ALCANTARILLADO", "inc": 0.012377, "tipo": "viv"}, {"id": 171, "nombre": "EXCAVACIÓN CÁMARA DE ALCANTARILLADO", "inc": 0.002035, "tipo": "viv"}, {"id": 172, "nombre": "CÁMARA DE ALCANTARILLADO", "inc": 0.004227, "tipo": "viv"}, {"id": 173, "nombre": "BANQUETA + AFINADO", "inc": 0.001417, "tipo": "viv"}, {"id": 174, "nombre": "RELLENOS SANITARIOS (Incl. CÁMARA)", "inc": 0.001356, "tipo": "viv"}, {"id": 175, "nombre": "EXCAVACIÓN DE POSTES DE PASO", "inc": 0.001541, "tipo": "viv"}, {"id": 176, "nombre": "INSTALACIÓN DE POSTE DE PASO", "inc": 0.001541, "tipo": "viv"}, {"id": 177, "nombre": "ARRANQUE GAS", "inc": 0.001911, "tipo": "viv"}]}, {"titulo": "EXT - GRUPO 2", "partidas": [{"id": 179, "nombre": "EMPAREJAMIENTO PATIO (GRUESO)", "inc": 0.000552, "tipo": "viv"}, {"id": 180, "nombre": "INSTALACIÓN PASTELONES", "inc": 0.002422, "tipo": "viv"}, {"id": 181, "nombre": "RADIER NICHO GAS", "inc": 0.00336, "tipo": "viv"}, {"id": 182, "nombre": "INSTALACIÓN CALEFONT", "inc": 0.006827, "tipo": "viv"}, {"id": 183, "nombre": "GABINETE DE CALEFONT, ALERO Y PROTECCIÓN DE PPR", "inc": 0.003755, "tipo": "viv"}, {"id": 184, "nombre": "INSTALACION TOPE DE PUERTA COCINA", "inc": 0.000415, "tipo": "viv"}, {"id": 185, "nombre": "RADIER LAVADERO", "inc": 0.000872, "tipo": "viv"}, {"id": 186, "nombre": "INST. LAVADERO", "inc": 0.002859, "tipo": "viv"}, {"id": 187, "nombre": "CIERRO PLACA", "inc": 0.011306, "tipo": "viv"}, {"id": 188, "nombre": "INSTALACION TECHO NICHO GAS", "inc": 0.001135, "tipo": "viv"}, {"id": 189, "nombre": "PRUEBAS DE CALEFONT Y RED DE GAS", "inc": 0.00701, "tipo": "viv"}, {"id": 190, "nombre": "INSTALACIÓN REJA", "inc": 0.016978, "tipo": "viv"}, {"id": 191, "nombre": "INSTALACIÓN FIJACIÓN REJA INFERIOR", "inc": 0.000186, "tipo": "viv"}, {"id": 192, "nombre": "CONFECCIÓN DE NICHO DE AP. (SI ES NECESARIO)", "inc": 0.000186, "tipo": "viv"}, {"id": 193, "nombre": "PINTURA REJA", "inc": 0.00365, "tipo": "viv"}, {"id": 194, "nombre": "ASEO FINAL PATIO", "inc": 0.000509, "tipo": "viv"}]}]}, {"titulo": "ENTREGA", "sections": [], "partidas": [{"id": 196, "nombre": "INSTALACIÓN PAPEL MURAL", "inc": 0.015131, "tipo": "viv"}, {"id": 197, "nombre": "INSTALACIÓN PISO FLOTANTE", "inc": 0.012611, "tipo": "viv"}, {"id": 198, "nombre": "COLOCACIÓN CUBREJUNTAS", "inc": 0.001552, "tipo": "viv"}, {"id": 199, "nombre": "INSTALACIÓN DE TOPES DE PUERTAS", "inc": 0.000415, "tipo": "viv"}, {"id": 200, "nombre": "INSTALACIÓN DE GUARDAPOLVOS PVC", "inc": 0.00823, "tipo": "viv"}, {"id": 201, "nombre": "MARCOS DE ALUMINIOS (VENTANA BAÑO Y ARISTAS PAPEL)", "inc": 0.001135, "tipo": "viv"}, {"id": 202, "nombre": "INSTALACIÓN BARANDAS DE VENTANAS 2 PISO", "inc": 0.003179, "tipo": "viv"}, {"id": 203, "nombre": "REMATES DE PINTURA", "inc": 0.003162, "tipo": "viv"}, {"id": 204, "nombre": "SELLOS DE TERMINACIÓN", "inc": 0.001186, "tipo": "viv"}, {"id": 205, "nombre": "ASEO FINO (RF)", "inc": 0.000941, "tipo": "viv"}, {"id": 206, "nombre": "INSTALACIÓN DE ACCESORIOS DE VIVIENDA", "inc": 0.002375, "tipo": "viv"}, {"id": 207, "nombre": "RECTIFICACIÓN DE BAJADAS DE AGUA LLUVIA", "inc": 0.001485, "tipo": "viv"}, {"id": 208, "nombre": "ENT-LISTADO OBSERVACIONES DE CALIDAD", "inc": 0.000177, "tipo": "viv"}, {"id": 209, "nombre": "ENT-OBTENCIÓN R1", "inc": 0.000364, "tipo": "viv"}, {"id": 210, "nombre": "ENT-LISTADO OBSERVACIONES DE POSTVENTA", "inc": 0.000364, "tipo": "viv"}, {"id": 211, "nombre": "ENT-OBTENCIÓN RF", "inc": 0.000364, "tipo": "viv"}]}]}, {"id": "URB", "titulo": "URBANIZACIÓN", "sections": [{"titulo": "MURO CONTENCION", "partidas": [{"id": 214, "nombre": "RECTIFICACION Y COMPACTACION DE EXCAVACION", "inc": 0.014844, "tipo": "pct"}, {"id": 215, "nombre": "INSTALACION DE HORMIGON DE EMPLANTILLADO", "inc": 0.014532, "tipo": "pct"}, {"id": 216, "nombre": "SUMINISTROE INSTALACION DE FIERRO", "inc": 0.019375, "tipo": "pct"}, {"id": 217, "nombre": "INSTALACION DE HORMIGON DE FUNDACION", "inc": 0.018601, "tipo": "pct"}, {"id": 218, "nombre": "SUMINISTRO E INSTALACION DE MOLDAJE PARA MURO", "inc": 0.014532, "tipo": "pct"}, {"id": 219, "nombre": "INSTALACION DE HORMIGON PARA MUROS", "inc": 0.024219, "tipo": "pct"}]}, {"titulo": "ALCANTARILLADO", "partidas": [{"id": 221, "nombre": "Trazado y Niveles", "inc": 0.001171, "tipo": "pct"}, {"id": 222, "nombre": "Excavacion -  Rectificacion", "inc": 0.02023, "tipo": "pct"}, {"id": 223, "nombre": "Colocacion Tuberia sn4  d200mm", "inc": 0.031178, "tipo": "pct"}, {"id": 224, "nombre": "Radier camara - Refuerzo Ud.", "inc": 0.01234, "tipo": "pct"}, {"id": 225, "nombre": "Tapado arena - Revision Tramo", "inc": 0.032101, "tipo": "pct"}, {"id": 226, "nombre": "Tapado por capas relleno granular", "inc": 0.013444, "tipo": "pct"}, {"id": 227, "nombre": "Entrega a ITO, Hermeticidad - Pendiente", "inc": 0.005892, "tipo": "pct"}, {"id": 228, "nombre": "Confec. camaras Publicas (Cuerpo-losa-chimenea)", "inc": 0.01634, "tipo": "pct"}]}, {"titulo": "AGUAS LLUVIA", "partidas": [{"id": 230, "nombre": "Trazado y Niveles", "inc": 0.001452, "tipo": "pct"}, {"id": 231, "nombre": "Excavacion -  Rectificacion", "inc": 0.008811, "tipo": "pct"}, {"id": 232, "nombre": "Radier camara", "inc": 0.010892, "tipo": "pct"}, {"id": 233, "nombre": "Tapado arena - Revision Tramo", "inc": 0.014522, "tipo": "pct"}, {"id": 234, "nombre": "Confec. camaras (Cuerpo-losa-chimenea)", "inc": 0.01307, "tipo": "pct"}, {"id": 235, "nombre": "Confecion Sumidero Radier - Cuerpo", "inc": 0.007261, "tipo": "pct"}, {"id": 236, "nombre": "Instalacion Peineta - Rejilla - Losa - Anillo Camara", "inc": 0.010892, "tipo": "pct"}, {"id": 237, "nombre": "Atraviezo tuberia Calle entre sumidero + refuerzo", "inc": 0.007261, "tipo": "pct"}]}, {"titulo": "CANAL", "partidas": [{"id": 239, "nombre": "Trazado y niveles Bypass canal", "inc": 0.002584, "tipo": "pct"}, {"id": 240, "nombre": "Confeccion Bypass canal", "inc": 0.01605, "tipo": "pct"}, {"id": 241, "nombre": "Colocacion geotextil - polietileno  bypass", "inc": 0.004938, "tipo": "pct"}, {"id": 242, "nombre": "Habilitacion cause canal hacia Bypass", "inc": 0.003704, "tipo": "pct"}, {"id": 243, "nombre": "Trazado canal Proyectado Jorge Errazuriz", "inc": 0.000112, "tipo": "pct"}, {"id": 244, "nombre": "Excavacion canal Jorge Errazuriz", "inc": 0.007344, "tipo": "pct"}, {"id": 245, "nombre": "cama de Apoyo", "inc": 0.005988, "tipo": "pct"}, {"id": 246, "nombre": "Confeccion Radier", "inc": 0.001475, "tipo": "pct"}, {"id": 247, "nombre": "Izaje he instalacion Cajon canal", "inc": 0.071569, "tipo": "pct"}, {"id": 248, "nombre": "Tapado lateral por capas", "inc": 0.010338, "tipo": "pct"}, {"id": 249, "nombre": "Confeccion toma y salida canal", "inc": 0.017256, "tipo": "pct"}, {"id": 250, "nombre": "Confeccion rejilla y compuertas", "inc": 0.00988, "tipo": "pct"}, {"id": 251, "nombre": "Solitud puesta en marcha de canal", "inc": 0.003139, "tipo": "pct"}, {"id": 252, "nombre": "Soliocitud  de revision y entrega a Canalista", "inc": 0.001235, "tipo": "pct"}, {"id": 253, "nombre": "solicitud de certificado a Canalista y Dga", "inc": 0.001235, "tipo": "pct"}]}, {"titulo": "AGUA POTABLE", "partidas": [{"id": 255, "nombre": "Trazado y Niveles", "inc": 0.000723, "tipo": "pct"}, {"id": 256, "nombre": "Excavacion -  Rectificacion", "inc": 0.004264, "tipo": "pct"}, {"id": 257, "nombre": "Cama de apoyo - Colocacion Tuberia", "inc": 0.011193, "tipo": "pct"}, {"id": 258, "nombre": "Confeccion Nudo + Refuerzo", "inc": 0.009759, "tipo": "pct"}, {"id": 259, "nombre": "Tapado arena - Revision Tramo", "inc": 0.001706, "tipo": "pct"}, {"id": 260, "nombre": "Arranque + 1° baston Ap", "inc": 0.031865, "tipo": "pct"}, {"id": 261, "nombre": "Confec. camaras Valvula (Radier-Cuerpo-losa-chimenea)", "inc": 0.003413, "tipo": "pct"}, {"id": 262, "nombre": "Interior camara V. Inst. Tasa - Valvula - Tapa camara", "inc": 0.001581, "tipo": "pct"}, {"id": 263, "nombre": "Recepcion completa de redes por parte del ITO", "inc": 0.002471, "tipo": "pct"}, {"id": 264, "nombre": "Ingreso de Carpeta con documentacion y certificados (redes Urbanizacion, proyctos Domiciliariios y enrolamiento)", "inc": 0.002495, "tipo": "pct"}, {"id": 265, "nombre": "Aprobacion de carpetas", "inc": 0.001735, "tipo": "pct"}, {"id": 266, "nombre": "Solicitud de Conexión  a red existente", "inc": 0.001119, "tipo": "pct"}, {"id": 267, "nombre": "Conexión a red existente Ap", "inc": 0.000313, "tipo": "pct"}, {"id": 268, "nombre": "Solisitud de recepcion y enrolamientp Essbio", "inc": 0.005381, "tipo": "pct"}, {"id": 269, "nombre": "Comision", "inc": 0.001119, "tipo": "pct"}, {"id": 270, "nombre": "Sub sanacion detalles comision", "inc": 0.001119, "tipo": "pct"}, {"id": 271, "nombre": "Recepcion y enrolamiento", "inc": 0.000448, "tipo": "pct"}]}, {"titulo": "PAVIMENTACIÓN", "partidas": [{"id": 273, "nombre": "Trazado y Niveles", "inc": 0.004353, "tipo": "pct"}, {"id": 274, "nombre": "Corte, Nivelacion y retiro", "inc": 0.01645, "tipo": "pct"}, {"id": 275, "nombre": "Preparacion de Subrasante", "inc": 0.035595, "tipo": "pct"}, {"id": 276, "nombre": "Instalacion Soleras", "inc": 0.014721, "tipo": "pct"}, {"id": 277, "nombre": "Confeccion Veredas", "inc": 0.034323, "tipo": "pct"}, {"id": 278, "nombre": "Cargado base estabilizada", "inc": 0.030274, "tipo": "pct"}, {"id": 279, "nombre": "Afinado y sellado Base estabilizada", "inc": 0.014571, "tipo": "pct"}, {"id": 280, "nombre": "Confeccion Baden", "inc": 0.020393, "tipo": "pct"}, {"id": 281, "nombre": "Asfaltos - pavimentos", "inc": 0.0951, "tipo": "pct"}, {"id": 282, "nombre": "Dispositivo podotactil", "inc": 0.006393, "tipo": "pct"}, {"id": 283, "nombre": "Rellenos veredones", "inc": 0.016704, "tipo": "pct"}, {"id": 284, "nombre": "Recepcion obra por ITO", "inc": 0.00593, "tipo": "pct"}, {"id": 285, "nombre": "Ingreso de boleta de garantia", "inc": 0.00545, "tipo": "pct"}, {"id": 286, "nombre": "Comision de inspeccion serviu", "inc": 0.006088, "tipo": "pct"}, {"id": 287, "nombre": "Certificado de Pavimentos - aguas lluvias", "inc": 0.007159, "tipo": "pct"}, {"id": 288, "nombre": "Ingreso de carpeta de Recepcion con todo los ensayo y certificados", "inc": 0.00514, "tipo": "pct"}]}, {"titulo": "POSTACIÓN + LUMINARIA", "partidas": [{"id": 290, "nombre": "Empostacion Electrica", "inc": 0.087204, "tipo": "pct"}, {"id": 291, "nombre": "Luminaria", "inc": 0.044643, "tipo": "pct"}]}]}, {"id": "EQ", "titulo": "EQUIPAMIENTO", "sections": [{"titulo": "LOCAL COMERCIAL A/1", "partidas": [{"id": 295, "nombre": "LOCAL COMERCIAL A/1 - OBRA GRUESA", "inc": 0.044678, "tipo": "pct"}, {"id": 296, "nombre": "LOCAL COMERCIAL A/1 - TERMINACIONES GRUESAS", "inc": 0.011446, "tipo": "pct"}, {"id": 297, "nombre": "LOCAL COMERCIAL A/1 - TERMINACIONES FINAS", "inc": 0.005942, "tipo": "pct"}, {"id": 298, "nombre": "LOCAL COMERCIAL A/1 - FACHADAS", "inc": 0.006881, "tipo": "pct"}, {"id": 299, "nombre": "LOCAL COMERCIAL A/1 - EXTERIORES (PATIOS)", "inc": 0.029653, "tipo": "pct"}, {"id": 300, "nombre": "LOCAL COMERCIAL A/1 - ENTREGA", "inc": 0.001848, "tipo": "pct"}]}, {"titulo": "LOCAL COMERCIAL A/2", "partidas": [{"id": 302, "nombre": "LOCAL COMERCIAL A/2 - OBRA GRUESA", "inc": 0.044678, "tipo": "pct"}, {"id": 303, "nombre": "LOCAL COMERCIAL A/2 - TERMINACIONES GRUESAS", "inc": 0.011446, "tipo": "pct"}, {"id": 304, "nombre": "LOCAL COMERCIAL A/2 - TERMINACIONES FINAS", "inc": 0.005942, "tipo": "pct"}, {"id": 305, "nombre": "LOCAL COMERCIAL A/2 - FACHADAS", "inc": 0.006881, "tipo": "pct"}, {"id": 306, "nombre": "LOCAL COMERCIAL A/2 - EXTERIORES (PATIOS)", "inc": 0.029653, "tipo": "pct"}, {"id": 307, "nombre": "LOCAL COMERCIAL A/2 - ENTREGA", "inc": 0.001848, "tipo": "pct"}]}, {"titulo": "CASA MOVILIDAD REDUCIDA 1", "partidas": [{"id": 310, "nombre": "CASA MINUSVALIDO - OBRA GRUESA", "inc": 0.009107, "tipo": "pct"}, {"id": 311, "nombre": "CASA MINUSVALIDO - TERMINACIONES GRUESAS", "inc": 0.002333, "tipo": "pct"}, {"id": 312, "nombre": "CASA MINUSVALIDO - TERMINACIONES FINAS", "inc": 0.001211, "tipo": "pct"}, {"id": 313, "nombre": "CASA MINUSVALIDO - FACHADAS", "inc": 0.001403, "tipo": "pct"}, {"id": 314, "nombre": "CASA MINUSVALIDO - EXTERIORES (PATIOS)", "inc": 0.006045, "tipo": "pct"}, {"id": 315, "nombre": "CASA MINUSVALIDO - ENTREGA", "inc": 0.000377, "tipo": "pct"}]}, {"titulo": "CASA MOVILIDAD REDUCIDA 1", "partidas": [{"id": 317, "nombre": "CASA MINUSVALIDO - OBRA GRUESA", "inc": 0.009107, "tipo": "pct"}, {"id": 318, "nombre": "CASA MINUSVALIDO - TERMINACIONES GRUESAS", "inc": 0.002333, "tipo": "pct"}, {"id": 319, "nombre": "CASA MINUSVALIDO - TERMINACIONES FINAS", "inc": 0.001211, "tipo": "pct"}, {"id": 320, "nombre": "CASA MINUSVALIDO - FACHADAS", "inc": 0.001403, "tipo": "pct"}, {"id": 321, "nombre": "CASA MINUSVALIDO - EXTERIORES (PATIOS)", "inc": 0.006045, "tipo": "pct"}, {"id": 322, "nombre": "CASA MINUSVALIDO - ENTREGA", "inc": 0.000377, "tipo": "pct"}]}, {"titulo": "SALA MULTIUSO", "partidas": [{"id": 324, "nombre": "SALA MULTIUSO - OBRA GRUESA", "inc": 0.088739, "tipo": "pct"}, {"id": 325, "nombre": "SALA MULTIUSO - TERMINACIONES GRUESAS", "inc": 0.022735, "tipo": "pct"}, {"id": 326, "nombre": "SALA MULTIUSO - TERMINACIONES FINAS", "inc": 0.011802, "tipo": "pct"}, {"id": 327, "nombre": "SALA MULTIUSO - FACHADAS", "inc": 0.013667, "tipo": "pct"}, {"id": 328, "nombre": "SALA MULTIUSO - EXTERIORES (PATIOS)", "inc": 0.058897, "tipo": "pct"}, {"id": 329, "nombre": "SALA MULTIUSO - ENTREGA", "inc": 0.003671, "tipo": "pct"}]}, {"titulo": "ÁREAS VERDES", "partidas": [{"id": 331, "nombre": "EMPAREJAMIENTO", "inc": 0.018075, "tipo": "pct"}, {"id": 332, "nombre": "Instalacion Solerilla", "inc": 0.033298, "tipo": "pct"}, {"id": 333, "nombre": "Sistema de Riego", "inc": 0.034477, "tipo": "pct"}, {"id": 334, "nombre": "Veredas (Maicillo, Gravilla, Corteza, etc..)", "inc": 0.128851, "tipo": "pct"}, {"id": 335, "nombre": "Mobilirario Urbano", "inc": 0.084064, "tipo": "pct"}, {"id": 336, "nombre": "Arbustos y arboles", "inc": 0.037466, "tipo": "pct"}, {"id": 337, "nombre": "Revision AV Municipal", "inc": 0.001226, "tipo": "pct"}, {"id": 338, "nombre": "Entrega Area  Verde Municipal", "inc": 0.003142, "tipo": "pct"}, {"id": 339, "nombre": "Certificado entrega recepcion Municipal", "inc": 0.003142, "tipo": "pct"}]}, {"titulo": "SEÑALÉTICA", "partidas": [{"id": 341, "nombre": "DEMARCACION", "inc": 0.084541, "tipo": "pct"}, {"id": 342, "nombre": "SEÑALETICA", "inc": 0.047723, "tipo": "pct"}, {"id": 343, "nombre": "LOMO TORO", "inc": 0.0414, "tipo": "pct"}]}, {"titulo": "SALA DE RECICLAJE", "partidas": [{"id": 345, "nombre": "SALA RECICLAJE - OBRA GRUESA", "inc": 0.023039, "tipo": "pct"}, {"id": 346, "nombre": "SALA RECICLAJE - TERMINACIONES GRUESAS", "inc": 0.005264, "tipo": "pct"}, {"id": 347, "nombre": "SALA RECICLAJE - TERMINACIONES FINAS", "inc": 0.012173, "tipo": "pct"}, {"id": 348, "nombre": "SALA RECICLAJE - ENTREGA", "inc": 0.000759, "tipo": "pct"}]}]}];
+var MANZANAS = {"D": {"1": "sm2", "2": "sm1", "3": "sm1", "4": "sm2", "5": "emer", "6": "vul", "7": "vul", "8": "sm2", "9": "sm1", "10": "sm1", "11": "sm2", "12": "emer", "13": "vul", "14": "vul", "15": "emer", "16": "sm2", "17": "sm1", "18": "sm1", "19": "sm2", "20": "sm2", "21": "sm2", "22": "sm2", "23": "sm1", "24": "sm2", "25": "emer", "26": "vul", "27": "vul", "28": "emer", "29": "sm2", "30": "sm1", "31": "sm1", "32": "sm2", "33": "emer", "34": "vul", "35": "vul", "36": "emer", "37": "sm2", "38": "sm1", "39": "sm1", "40": "sm2", "41": "emer", "42": "vul", "43": "vul", "44": "emer", "45": "sm2", "46": "sm1", "47": "sm1", "48": "sm2", "49": "sm2", "50": "sm2"}, "C": {"51": "sm2", "52": "sm1", "53": "sm1", "54": "sm2", "55": "vul", "56": "vul", "57": "emer", "58": "sm2", "59": "sm1", "60": "sm1", "61": "sm2", "62": "vul", "63": "vul", "64": "emer", "65": "vul", "66": "vul", "67": "emer", "68": "sm2", "69": "sm1", "70": "sm2", "71": "sm2", "72": "sm1", "73": "sm1", "74": "sm2", "75": "vul", "76": "vul", "77": "emer", "78": "vul", "79": "vul", "80": "emer", "81": "sm2", "82": "sm1", "83": "sm2", "84": "vul", "85": "vul", "86": "emer", "87": "sm2", "88": "sm1", "89": "sm1", "90": "sm2", "91": "vul", "92": "vul", "93": "vul", "94": "emer"}, "B": {"95": "sm2", "96": "sm1", "97": "sm1", "98": "sm2", "99": "emer", "100": "vul", "101": "vul", "102": "vul", "103": "sm2", "104": "sm1", "105": "sm1", "106": "sm2", "107": "emer", "108": "vul", "109": "vul", "110": "emer", "111": "sm2", "112": "sm1", "113": "sm1", "114": "sm2", "115": "emer", "116": "vul", "117": "vul", "118": "emer", "119": "emer", "120": "vul", "121": "vul", "122": "vul", "123": "emer", "124": "vul", "125": "vul", "126": "sm2", "127": "sm1", "128": "sm1", "129": "sm2", "130": "sm2", "131": "sm1", "132": "sm1", "133": "sm2", "134": "emer", "135": "vul", "136": "vul", "137": "vul", "138": "sm2", "139": "sm1", "140": "sm1", "141": "sm2", "142": "sm2", "143": "sm1", "144": "sm1", "145": "sm2", "146": "sm2", "147": "sm1", "148": "sm1", "149": "sm2", "150": "sm2", "151": "sm1", "152": "sm1", "153": "sm2"}, "A": {"158": "sm2", "159": "sm1", "160": "sm2", "161": "sm2", "162": "sm1", "163": "sm1", "164": "sm2", "165": "sm2", "166": "sm1", "167": "sm1", "168": "sm2", "169": "vul", "170": "vul", "171": "emer", "172": "vul", "173": "vul", "174": "emer", "175": "sm2", "176": "sm1", "177": "sm1", "178": "sm2", "179": "vul", "180": "vul", "181": "emer", "182": "vul", "183": "vul", "184": "emer", "185": "sm2", "186": "sm1", "187": "sm2", "188": "sm2", "189": "sm1", "190": "sm2", "191": "sm2", "192": "sm1", "193": "sm2", "194": "sm2", "195": "sm1", "196": "sm1", "197": "sm2", "198": "sm2", "199": "sm1", "200": "sm1", "201": "sm2", "202": "emer", "203": "vul", "204": "vul", "205": "sm2", "206": "sm1", "207": "sm1", "208": "sm2", "209": "sm2", "210": "sm1", "211": "sm1", "212": "sm2", "213": "emer", "214": "vul", "215": "vul", "216": "emer", "217": "sm2", "218": "sm1", "219": "sm1", "220": "sm2"}, "F": {"154": "sm2", "155": "sm1", "156": "sm1", "157": "sm2", "221": "vul", "222": "vul", "223": "emer", "224": "vul", "225": "vul", "226": "emer"}};
+
+// ---- CONFIG ----
+var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxJVsTaT1j4oms-HEUTM5zDnzHKv0z9xDq8wnyLPHNfAGU3D6Pw9hUM6el05Yj24rzH/exec';
+var CURRENT_SEMANA = '';
+
+var DATA = {jt:{}, cal:{}};
+var ROLE = null;
+var MODAL_PID = null;
+var MODAL_BUILT = false;
+var MODAL_SEL = [];
+
+// ---- INIT: carga semana actual ----
+(function initSemana() {
+  fetch(SCRIPT_URL + '?action=getUltimaSemana&_=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d && d.ok && d.semana) {
+        CURRENT_SEMANA = d.semana;
+        document.getElementById('week-pill').textContent = '📅 ' + d.semana;
+      }
+    })
+    .catch(function(){ document.getElementById('week-pill').textContent = '📅 (sin conexión)'; });
+})();
+
+// ---- HELPERS ----
+function hasVal(role, pid) {
+  var v = DATA[role][pid];
+  if (v === undefined || v === null) return false;
+  return Array.isArray(v) ? v.length > 0 : true;
+}
+function getPartidas(ch) {
+  var r = [];
+  (ch.groups || []).forEach(function(g) {
+    (g.sections || []).forEach(function(s) { r = r.concat(s.partidas || []); });
+    r = r.concat(g.partidas || []);
+  });
+  (ch.sections || []).forEach(function(s) { r = r.concat(s.partidas || []); });
+  r = r.concat(ch.partidas || []);
+  return r;
+}
+function countFilled(partidas, role) {
+  return partidas.filter(function(p) { return hasVal(role, p.id); }).length;
+}
+
+// ---- SCREENS ----
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+
+// ---- ROLE ----
+function enterAs(role) {
+  ROLE = role;
+  var rb = document.getElementById('role-badge');
+  if (role === 'jt')  { rb.textContent = '👷 Jefe de Terreno'; rb.className = 'role-badge rb-jt'; }
+  else if (role === 'cal') { rb.textContent = '📋 Calidad'; rb.className = 'role-badge rb-cal'; }
+  else { rb.textContent = '🔍 Comparación'; rb.className = 'role-badge rb-gaby'; }
+  rb.style.display = '';
+  document.getElementById('btn-logout').style.display = '';
+  document.getElementById('prog-wrap').style.display = '';
+  document.getElementById('bottom-bar').style.display = '';
+  var navAudit = document.getElementById('btn-nav-audit');
+  var navCmp = document.getElementById('btn-nav-cmp');
+  if (role === 'gaby') { navAudit.style.display = 'none'; navCmp.style.display = ''; }
+  else { navAudit.style.display = ''; navCmp.style.display = 'none'; }
+
+  // Cargar datos existentes desde el Sheet, luego mostrar pantalla
+  var st = document.getElementById('save-st');
+  st.textContent = 'Cargando datos…'; st.style.color = '#8899bb';
+  var sem = CURRENT_SEMANA || '';
+  fetch(SCRIPT_URL + '?action=getAuditSemana&semana=' + encodeURIComponent(sem) + '&_=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.ok) {
+        if (d.jt)  DATA.jt  = normalizeData(d.jt);
+        if (d.cal) DATA.cal = normalizeData(d.cal);
+      }
+      st.textContent = sem ? 'Datos semana ' + sem + ' cargados' : 'Sin semana activa';
+      st.style.color = '#1a9b5a';
+      afterLoad(role);
+    })
+    .catch(function(){
+      st.textContent = 'Sin conexión — datos locales';
+      st.style.color = '#cc8822';
+      afterLoad(role);
+    });
+}
+
+// Los datos del Sheet vienen con claves como strings; convertir arrays de JSON
+function normalizeData(obj) {
+  var out = {};
+  Object.keys(obj).forEach(function(k) {
+    var v = obj[k];
+    out[parseInt(k)] = Array.isArray(v) ? v.map(Number) : v;
+  });
+  return out;
+}
+
+function afterLoad(role) {
+  if (role === 'gaby') {
+    showCompare();
+  } else {
+    renderAudit();
+    showScreen('sc-audit');
+    updateProgress();
+    setTimeout(function() {
+      var firstCh = document.querySelector('.ch-body');
+      var firstArr = document.querySelector('.ch-arr');
+      if (firstCh) { firstCh.classList.add('open'); firstArr.classList.add('open'); }
+      var firstGrp = document.querySelector('.grp-body');
+      var firstGArr = document.querySelector('.grp-arr');
+      if (firstGrp) { firstGrp.classList.add('open'); firstGArr.classList.add('open'); }
+      var firstSec = document.querySelector('.sec-body');
+      var firstSArr = document.querySelector('.sec-arr');
+      if (firstSec) { firstSec.classList.add('open'); firstSArr.classList.add('open'); }
+    }, 10);
+  }
+}
+
+// ---- PINS ----
+// JT: 0925 · CAL: 1472 · GABY (comparación): 0525
+var PINS = { jt: '0925', cal: '1472', gaby: '0525' };
+var PENDING_ROLE = null;
+
+function goToPin(role) {
+  PENDING_ROLE = role;
+  var labels = { jt: '👷 Jefe de Terreno', cal: '📋 Calidad', gaby: '🔍 Comparación' };
+  document.getElementById('pin-title').textContent = labels[role];
+  var sem = CURRENT_SEMANA ? 'Semana ' + CURRENT_SEMANA : 'Ingresa tu PIN de acceso';
+  document.getElementById('pin-semana').textContent = sem;
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').textContent = '';
+  showScreen('sc-pin');
+  setTimeout(function() { document.getElementById('pin-input').focus(); }, 100);
+}
+
+function checkPin() {
+  var entered = document.getElementById('pin-input').value;
+  if (entered === PINS[PENDING_ROLE]) {
+    document.getElementById('pin-error').textContent = '';
+    enterAs(PENDING_ROLE);
+  } else {
+    document.getElementById('pin-error').textContent = 'PIN incorrecto. Intenta nuevamente.';
+    document.getElementById('pin-input').value = '';
+    document.getElementById('pin-input').focus();
+  }
+}
+
+document.getElementById('btn-jt').addEventListener('click', function() { goToPin('jt'); });
+document.getElementById('btn-cal').addEventListener('click', function() { goToPin('cal'); });
+document.getElementById('btn-gaby').addEventListener('click', function() { goToPin('gaby'); });
+document.getElementById('pin-confirm').addEventListener('click', checkPin);
+document.getElementById('pin-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') checkPin();
+});
+document.getElementById('pin-back').addEventListener('click', function() { showScreen('sc-login'); });
+document.getElementById('btn-logout').addEventListener('click', function() {
+  ROLE = null;
+  document.getElementById('role-badge').style.display = 'none';
+  document.getElementById('btn-logout').style.display = 'none';
+  document.getElementById('prog-wrap').style.display = 'none';
+  document.getElementById('bottom-bar').style.display = 'none';
+  showScreen('sc-login');
+});
+document.getElementById('btn-nav-audit').addEventListener('click', function() {
+  showScreen('sc-audit');
+  document.getElementById('btn-nav-audit').classList.add('active');
+  document.getElementById('btn-nav-cmp').classList.remove('active');
+});
+document.getElementById('btn-nav-cmp').addEventListener('click', function() {
+  showCompare();
+});
+document.getElementById('save-btn').addEventListener('click', doSave);
+document.getElementById('modal-x').addEventListener('click', closeModal);
+document.getElementById('modal-confirm').addEventListener('click', confirmModal);
+
+// ---- RENDER AUDIT ----
+function renderAudit() {
+  var con = document.getElementById('audit-container');
+  con.innerHTML = '';
+  CHAPTERS.forEach(function(ch, ci) {
+    con.appendChild(buildChapter(ch, ci));
+  });
+}
+
+function makeEl(tag, cls, id) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (id) e.id = id;
+  return e;
+}
+
+function buildChapter(ch, ci) {
+  var allP = getPartidas(ch);
+  var filled = countFilled(allP, ROLE);
+  var pct = allP.length ? Math.round(filled / allP.length * 100) : 0;
+
+  var div = makeEl('div', 'chapter');
+  var hdr = makeEl('div', 'ch-hdr');
+  var arr = makeEl('span', 'ch-arr');
+  arr.textContent = '▶'; hdr.appendChild(arr);
+  var nm = makeEl('span', 'ch-name'); nm.textContent = ch.titulo; hdr.appendChild(nm);
+  var st = makeEl('span', 'ch-stats', 'ch-st-' + ci); st.textContent = filled + '/' + allP.length; hdr.appendChild(st);
+  var bar = makeEl('div', 'ch-bar'); var bf = makeEl('div', 'ch-bar-fill'); bf.id = 'ch-bf-' + ci; bf.style.width = pct + '%'; bar.appendChild(bf); hdr.appendChild(bar);
+
+  var body = makeEl('div', 'ch-body', 'ch-body-' + ci);
+  hdr.addEventListener('click', function() { toggle(body, arr); });
+
+  if (ch.groups) {
+    ch.groups.forEach(function(g, gi) { body.appendChild(buildGroup(g, ci, gi)); });
+  } else {
+    (ch.sections || []).forEach(function(s, si) { body.appendChild(buildSection(s, ci, -1, si)); });
+    (ch.partidas || []).forEach(function(p) { body.appendChild(buildPartidaRow(p, true)); });
+  }
+  div.appendChild(hdr); div.appendChild(body);
+  return div;
+}
+
+function buildGroup(g, ci, gi) {
+  var allP = [];
+  (g.sections || []).forEach(function(s) { allP = allP.concat(s.partidas || []); });
+  allP = allP.concat(g.partidas || []);
+  var filled = countFilled(allP, ROLE);
+  var pct = allP.length ? Math.round(filled / allP.length * 100) : 0;
+
+  var div = makeEl('div', 'group');
+  var hdr = makeEl('div', 'grp-hdr');
+  var arr = makeEl('span', 'grp-arr'); arr.textContent = '▶'; hdr.appendChild(arr);
+  var nm = makeEl('span', 'grp-name'); nm.textContent = g.titulo; hdr.appendChild(nm);
+  var st = makeEl('span', 'grp-stats', 'grp-st-' + ci + '-' + gi); st.textContent = filled + '/' + allP.length; hdr.appendChild(st);
+  var bar = makeEl('div', 'grp-bar'); var bf = makeEl('div', 'grp-bar-fill'); bf.id = 'grp-bf-' + ci + '-' + gi; bf.style.width = pct + '%'; bar.appendChild(bf); hdr.appendChild(bar);
+
+  var body = makeEl('div', 'grp-body', 'grp-body-' + ci + '-' + gi);
+  hdr.addEventListener('click', function() { toggle(body, arr); });
+
+  (g.sections || []).forEach(function(s, si) { body.appendChild(buildSection(s, ci, gi, si)); });
+  (g.partidas || []).forEach(function(p) { body.appendChild(buildPartidaRow(p, true)); });
+
+  div.appendChild(hdr); div.appendChild(body);
+  return div;
+}
+
+function buildSection(s, ci, gi, si) {
+  var partidas = s.partidas || [];
+  var filled = countFilled(partidas, ROLE);
+  var pct = partidas.length ? Math.round(filled / partidas.length * 100) : 0;
+  var key = ci + '-' + gi + '-' + si;
+
+  var div = makeEl('div', 'section');
+  var hdr = makeEl('div', 'sec-hdr');
+  var arr = makeEl('span', 'sec-arr'); arr.textContent = '▶'; hdr.appendChild(arr);
+  var nm = makeEl('span', 'sec-name'); nm.textContent = s.titulo; hdr.appendChild(nm);
+  var cnt = makeEl('span', 'sec-count', 'sec-st-' + key); cnt.textContent = filled + '/' + partidas.length; hdr.appendChild(cnt);
+  var bar = makeEl('div', 'sec-bar'); var bf = makeEl('div', 'sec-bar-fill'); bf.id = 'sec-bf-' + key; bf.style.width = pct + '%'; bar.appendChild(bf); hdr.appendChild(bar);
+
+  var body = makeEl('div', 'sec-body', 'sec-body-' + key);
+  hdr.addEventListener('click', function() { toggle(body, arr); });
+  partidas.forEach(function(p) { body.appendChild(buildPartidaRow(p, false)); });
+
+  div.appendChild(hdr); div.appendChild(body);
+  return div;
+}
+
+function buildPartidaRow(p, isDirect) {
+  var val = DATA[ROLE] ? DATA[ROLE][p.id] : undefined;
+  var filled = hasVal(ROLE, p.id);
+
+  var row = makeEl('div', 'p-row' + (filled ? ' filled' : '') + (isDirect ? ' direct' : ''));
+  row.id = 'row-' + p.id;
+
+  var dot = makeEl('span', 'p-dot ' + (filled ? 'done' : 'empty')); row.appendChild(dot);
+  var num = makeEl('span', 'p-num'); num.textContent = p.id; row.appendChild(num);
+  var nm = makeEl('span', 'p-name'); nm.textContent = p.nombre; row.appendChild(nm);
+  var inc = makeEl('span', 'p-inc'); inc.textContent = (p.inc * 100).toFixed(2) + '%'; row.appendChild(inc);
+
+  var inp = makeEl('div', 'p-inp'); row.appendChild(inp);
+
+  if (p.tipo === 'viv') {
+    var cnt = Array.isArray(val) ? val.length : 0;
+    var btn = makeEl('button', 'viv-btn' + (cnt > 0 ? ' filled' : ''));
+    btn.id = 'vb-' + p.id;
+    btn.innerHTML = '&#127968; Loteo' + (cnt > 0 ? '<span class="viv-cnt">' + cnt + '</span>' : '');
+    btn.addEventListener('click', function() { openModal(p.id, p.nombre); });
+    inp.appendChild(btn);
+  } else {
+    var wrap = makeEl('div', 'pct-wrap');
+    var input = makeEl('input');
+    input.type = 'number'; input.min = 0; input.max = 100;
+    input.className = 'pct-input' + (val !== undefined && val !== null ? ' filled' : '');
+    input.id = 'pi-' + p.id;
+    if (val !== undefined && val !== null) input.value = val;
+    input.placeholder = '—';
+    input.addEventListener('input', function() { onPct(p.id, input); });
+    input.addEventListener('focus', function() { input.select(); });
+    var sym = makeEl('span', 'pct-sym'); sym.textContent = '%';
+    wrap.appendChild(input); wrap.appendChild(sym);
+    inp.appendChild(wrap);
+  }
+  return row;
+}
+
+function toggle(body, arr) {
+  var open = body.classList.contains('open');
+  body.classList.toggle('open', !open);
+  arr.classList.toggle('open', !open);
+}
+
+// ---- PCT INPUT ----
+function onPct(pid, input) {
+  var v = parseFloat(input.value);
+  if (!isNaN(v) && v >= 0 && v <= 100) {
+    DATA[ROLE][pid] = v;
+    input.classList.add('filled');
+    setFilled(pid, true);
+  } else if (input.value === '') {
+    delete DATA[ROLE][pid];
+    input.classList.remove('filled');
+    setFilled(pid, false);
+  }
+  refreshProgress();
+}
+
+function setFilled(pid, filled) {
+  var row = document.getElementById('row-' + pid);
+  if (!row) return;
+  row.classList.toggle('filled', filled);
+  var dot = row.querySelector('.p-dot');
+  if (dot) { dot.className = 'p-dot ' + (filled ? 'done' : 'empty'); }
+}
+
+function refreshProgress() {
+  // Refresh all progress bars and stats by re-counting DOM dots
+  CHAPTERS.forEach(function(ch, ci) {
+    var allP = getPartidas(ch);
+    var filled = countFilled(allP, ROLE);
+    var pct = allP.length ? Math.round(filled / allP.length * 100) : 0;
+    var bf = document.getElementById('ch-bf-' + ci);
+    var st = document.getElementById('ch-st-' + ci);
+    if (bf) bf.style.width = pct + '%';
+    if (st) st.textContent = filled + '/' + allP.length;
+
+    if (ch.groups) {
+      ch.groups.forEach(function(g, gi) {
+        var gP = [];
+        (g.sections || []).forEach(function(s) { gP = gP.concat(s.partidas || []); });
+        gP = gP.concat(g.partidas || []);
+        var gf = countFilled(gP, ROLE);
+        var gpct = gP.length ? Math.round(gf / gP.length * 100) : 0;
+        var gbf = document.getElementById('grp-bf-' + ci + '-' + gi);
+        var gst = document.getElementById('grp-st-' + ci + '-' + gi);
+        if (gbf) gbf.style.width = gpct + '%';
+        if (gst) gst.textContent = gf + '/' + gP.length;
+
+        (g.sections || []).forEach(function(s, si) {
+          var sp = s.partidas || [];
+          var sf = countFilled(sp, ROLE);
+          var spct = sp.length ? Math.round(sf / sp.length * 100) : 0;
+          var key = ci + '-' + gi + '-' + si;
+          var sbf = document.getElementById('sec-bf-' + key);
+          var sst = document.getElementById('sec-st-' + key);
+          if (sbf) sbf.style.width = spct + '%';
+          if (sst) sst.textContent = sf + '/' + sp.length;
+        });
+      });
+    } else {
+      (ch.sections || []).forEach(function(s, si) {
+        var sp = s.partidas || [];
+        var sf = countFilled(sp, ROLE);
+        var spct = sp.length ? Math.round(sf / sp.length * 100) : 0;
+        var key = ci + '--1-' + si;
+        var sbf = document.getElementById('sec-bf-' + key);
+        var sst = document.getElementById('sec-st-' + key);
+        if (sbf) sbf.style.width = spct + '%';
+        if (sst) sst.textContent = sf + '/' + sp.length;
+      });
+    }
+  });
+  updateProgress();
+}
+
+function updateProgress() {
+  var all = [];
+  CHAPTERS.forEach(function(ch) { all = all.concat(getPartidas(ch)); });
+  var filled = countFilled(all, ROLE);
+  var pct = all.length ? Math.round(filled / all.length * 100) : 0;
+  document.getElementById('prog-txt').textContent = filled + ' / ' + all.length + ' partidas';
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+
+// ---- MODAL ----
+function buildModalDOM() {
+  var body = document.getElementById('modal-body');
+  body.innerHTML = '';
+  // quick chips
+  var qb = makeEl('div', 'quick-bar');
+  var lbl = makeEl('span', 'qb-lbl'); lbl.textContent = 'Seleccionar tipo:'; qb.appendChild(lbl);
+  [['sm1','SM1'],['sm2','SM2'],['vul','VUL'],['emer','EME'],['all','Todas'],['none','Ninguna']].forEach(function(pair) {
+    var chip = makeEl('button', 'qchip ' + pair[0]); chip.textContent = pair[1];
+    chip.addEventListener('click', function() {
+      if (pair[0] === 'all') selAll();
+      else if (pair[0] === 'none') selNone();
+      else selByTipo(pair[0]);
+    });
+    qb.appendChild(chip);
+  });
+  body.appendChild(qb);
+  // manzanas — built ONCE, selection synced separately
+  ['D','C','B','A','F'].forEach(function(mz) {
+    var mzData = MANZANAS[mz];
+    var wrap = makeEl('div', 'mz-wrap');
+    var lbl2 = makeEl('div', 'mz-lbl');
+    lbl2.appendChild(document.createTextNode('Manzana '));
+    var badge = makeEl('span', 'mz-badge'); badge.textContent = mz; lbl2.appendChild(badge);
+    wrap.appendChild(lbl2);
+    var grid = makeEl('div', 'lotes-grid');
+    Object.keys(mzData).forEach(function(k) {
+      var n = parseInt(k);
+      var tipo = mzData[k];
+      var cell = makeEl('div', 'lote ' + tipo);
+      cell.id = 'lc-' + n;
+      cell.textContent = n;
+      cell.addEventListener('click', function() { toggleLote(n); });
+      grid.appendChild(cell);
+    });
+    wrap.appendChild(grid);
+    body.appendChild(wrap);
+  });
+  MODAL_BUILT = true;
+}
+
+function syncModalSel() {
+  // Clear all, then mark selected — O(total_lotes) touch, no DOM creation
+  document.querySelectorAll('#modal-body .lote').forEach(function(c) { c.classList.remove('sel'); });
+  MODAL_SEL.forEach(function(n) {
+    var c = document.getElementById('lc-' + n);
+    if (c) c.classList.add('sel');
+  });
+  document.getElementById('modal-n').textContent = MODAL_SEL.length;
+}
+
+function openModal(pid, nombre) {
+  MODAL_PID = pid;
+  var existing = (DATA[ROLE] && DATA[ROLE][pid]) ? DATA[ROLE][pid] : [];
+  MODAL_SEL = existing.slice();
+  document.getElementById('modal-sub').textContent = nombre;
+  if (!MODAL_BUILT) buildModalDOM();  // build DOM only on first open
+  syncModalSel();                      // fast: just toggle CSS classes
+  document.getElementById('modal').classList.add('open');
+}
+
+function toggleLote(n) {
+  var idx = MODAL_SEL.indexOf(n);
+  if (idx >= 0) MODAL_SEL.splice(idx, 1); else MODAL_SEL.push(n);
+  var c = document.getElementById('lc-' + n);
+  if (c) c.classList.toggle('sel', idx < 0);
+  document.getElementById('modal-n').textContent = MODAL_SEL.length;
+}
+function selByTipo(tipo) {
+  Object.keys(MANZANAS).forEach(function(mz) {
+    Object.keys(MANZANAS[mz]).forEach(function(k) {
+      if (MANZANAS[mz][k] === tipo) {
+        var n = parseInt(k);
+        if (MODAL_SEL.indexOf(n) < 0) { MODAL_SEL.push(n); }
+        var c = document.getElementById('lc-' + n);
+        if (c) c.classList.add('sel');
+        var c = document.getElementById('lc-' + n); if (c) c.classList.add('sel');
+      }
+    });
+  });
+  document.getElementById('modal-n').textContent = MODAL_SEL.length;
+}
+function selAll() {
+  MODAL_SEL = [];
+  Object.keys(MANZANAS).forEach(function(mz) {
+    Object.keys(MANZANAS[mz]).forEach(function(k) { MODAL_SEL.push(parseInt(k)); });
+  });
+  document.querySelectorAll('.lote').forEach(function(c) { c.classList.add('sel'); });
+  document.getElementById('modal-n').textContent = MODAL_SEL.length;
+}
+function selNone() {
+  MODAL_SEL = [];
+  document.querySelectorAll('.lote').forEach(function(c) { c.classList.remove('sel'); });
+  document.getElementById('modal-n').textContent = 0;
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function confirmModal() {
+  var pid = MODAL_PID;
+  DATA[ROLE][pid] = MODAL_SEL.slice();
+  var cnt = MODAL_SEL.length;
+  var btn = document.getElementById('vb-' + pid);
+  if (btn) {
+    btn.className = 'viv-btn' + (cnt > 0 ? ' filled
