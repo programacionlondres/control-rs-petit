@@ -286,17 +286,27 @@ var MODAL_PID = null;
 var MODAL_BUILT = false;
 var MODAL_SEL = [];
 
-// ---- INIT: carga semana actual ----
+// ---- INIT: carga semana actual (endpoint ligero, sin partidas) ----
 (function initSemana() {
-  fetch(SCRIPT_URL + '?action=getUltimaSemana&_=' + Date.now())
+  var done = false;
+  var fallback = setTimeout(function() {
+    if (!done) { done = true; document.getElementById('week-pill').textContent = '📅 (sin conexión)'; }
+  }, 6000);
+  fetch(SCRIPT_URL + '?action=getSemanaActual&_=' + Date.now())
     .then(function(r){ return r.json(); })
     .then(function(d){
+      if (done) return; done = true; clearTimeout(fallback);
       if (d && d.ok && d.semana) {
         CURRENT_SEMANA = d.semana;
         document.getElementById('week-pill').textContent = '📅 ' + d.semana;
+      } else {
+        document.getElementById('week-pill').textContent = '📅 (sin semana activa)';
       }
     })
-    .catch(function(){ document.getElementById('week-pill').textContent = '📅 (sin conexión)'; });
+    .catch(function(){
+      if (done) return; done = true; clearTimeout(fallback);
+      document.getElementById('week-pill').textContent = '📅 (sin conexión)';
+    });
 })();
 
 // ---- HELPERS ----
@@ -345,21 +355,36 @@ function enterAs(role) {
   var st = document.getElementById('save-st');
   st.textContent = 'Cargando datos…'; st.style.color = '#8899bb';
   var sem = CURRENT_SEMANA || '';
+
+  var loaded = false;
+  function doLoad() {
+    if (loaded) return; loaded = true;
+    afterLoad(role);
+  }
+  // Timeout: si el fetch no responde en 6s, entrar igual con datos vacíos
+  var timeout = setTimeout(function() {
+    st.textContent = 'Sin conexión — datos locales';
+    st.style.color = '#cc8822';
+    doLoad();
+  }, 6000);
+
   fetch(SCRIPT_URL + '?action=getAuditSemana&semana=' + encodeURIComponent(sem) + '&_=' + Date.now())
     .then(function(r){ return r.json(); })
     .then(function(d){
-      if (d.ok) {
+      clearTimeout(timeout);
+      if (d && d.ok) {
         if (d.jt)  DATA.jt  = normalizeData(d.jt);
         if (d.cal) DATA.cal = normalizeData(d.cal);
       }
       st.textContent = sem ? 'Datos semana ' + sem + ' cargados' : 'Sin semana activa';
       st.style.color = '#1a9b5a';
-      afterLoad(role);
+      doLoad();
     })
     .catch(function(){
+      clearTimeout(timeout);
       st.textContent = 'Sin conexión — datos locales';
       st.style.color = '#cc8822';
-      afterLoad(role);
+      doLoad();
     });
 }
 
