@@ -125,6 +125,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .qchip.sm1{border-color:#4488dd;color:#2266bb;background:#eef5ff}.qchip.sm2{border-color:#44aa55;color:#228833;background:#eefff2}
 .qchip.vul{border-color:#dd8833;color:#aa5500;background:#fff8ee}.qchip.emer{border-color:#aa55bb;color:#773399;background:#fcf0ff}
 .qchip.all{border-color:#8899bb;color:#4455aa;background:#f4f6fb}.qchip.none{border-color:#ccccdd;color:#8899bb;background:#fafafa}
+.qchip.mz{border-color:#1a2744;color:#1a2744;background:#e8ecf8;font-size:11px;padding:3px 11px}
+.qchip.mz.active{background:#1a2744;color:white}
 .qchip:hover{opacity:.8}
 
 .mz-wrap{margin-bottom:12px}
@@ -696,9 +698,9 @@ function updateProgress() {
 function buildModalDOM() {
   var body = document.getElementById('modal-body');
   body.innerHTML = '';
-  // quick chips
+  // fila 1: por tipo
   var qb = makeEl('div', 'quick-bar');
-  var lbl = makeEl('span', 'qb-lbl'); lbl.textContent = 'Seleccionar tipo:'; qb.appendChild(lbl);
+  var lbl = makeEl('span', 'qb-lbl'); lbl.textContent = 'Tipo:'; qb.appendChild(lbl);
   [['sm1','SM1'],['sm2','SM2'],['vul','VUL'],['emer','EME'],['all','Todas'],['none','Ninguna']].forEach(function(pair) {
     var chip = makeEl('button', 'qchip ' + pair[0]); chip.textContent = pair[1];
     chip.addEventListener('click', function() {
@@ -709,6 +711,16 @@ function buildModalDOM() {
     qb.appendChild(chip);
   });
   body.appendChild(qb);
+  // fila 2: por manzana
+  var qb2 = makeEl('div', 'quick-bar');
+  qb2.style.marginTop = '-4px';
+  var lbl2 = makeEl('span', 'qb-lbl'); lbl2.textContent = 'Manzana:'; qb2.appendChild(lbl2);
+  ['D','C','B','A','F'].forEach(function(mz) {
+    var chip = makeEl('button', 'qchip mz'); chip.textContent = 'Mz ' + mz; chip.id = 'mzchip-' + mz;
+    chip.addEventListener('click', function() { selByManzana(mz); });
+    qb2.appendChild(chip);
+  });
+  body.appendChild(qb2);
   // manzanas — built ONCE, selection synced separately
   ['D','C','B','A','F'].forEach(function(mz) {
     var mzData = MANZANAS[mz];
@@ -774,17 +786,42 @@ function selByTipo(tipo) {
   });
   document.getElementById('modal-n').textContent = MODAL_SEL.length;
 }
+function selByManzana(mz) {
+  var lotes = Object.keys(MANZANAS[mz] || {}).map(function(k){ return parseInt(k); });
+  // toggle: si todos ya están seleccionados → deseleccionar, si no → seleccionar
+  var allSel = lotes.every(function(n){ return MODAL_SEL.indexOf(n) >= 0; });
+  lotes.forEach(function(n) {
+    var idx = MODAL_SEL.indexOf(n);
+    if (allSel) { if (idx >= 0) MODAL_SEL.splice(idx, 1); }
+    else        { if (idx < 0) MODAL_SEL.push(n); }
+  });
+  // actualizar visual del chip
+  ['D','C','B','A','F'].forEach(function(m) {
+    var chip = document.getElementById('mzchip-' + m);
+    if (!chip) return;
+    var mLotes = Object.keys(MANZANAS[m]||{}).map(function(k){ return parseInt(k); });
+    var mAll = mLotes.every(function(n){ return MODAL_SEL.indexOf(n) >= 0; });
+    chip.classList.toggle('active', mAll);
+  });
+  syncModalSel();
+}
 function selAll() {
   MODAL_SEL = [];
   Object.keys(MANZANAS).forEach(function(mz) {
     Object.keys(MANZANAS[mz]).forEach(function(k) { MODAL_SEL.push(parseInt(k)); });
   });
   document.querySelectorAll('.lote').forEach(function(c) { c.classList.add('sel'); });
+  ['D','C','B','A','F'].forEach(function(m) {
+    var chip = document.getElementById('mzchip-' + m); if (chip) chip.classList.add('active');
+  });
   document.getElementById('modal-n').textContent = MODAL_SEL.length;
 }
 function selNone() {
   MODAL_SEL = [];
   document.querySelectorAll('.lote').forEach(function(c) { c.classList.remove('sel'); });
+  ['D','C','B','A','F'].forEach(function(m) {
+    var chip = document.getElementById('mzchip-' + m); if (chip) chip.classList.remove('active');
+  });
   document.getElementById('modal-n').textContent = 0;
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
