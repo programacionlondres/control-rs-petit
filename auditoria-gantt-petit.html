@@ -772,7 +772,7 @@ function selByTipo(tipo) {
   });
   document.getElementById('modal-n').textContent = MODAL_SEL.length;
 }
-function selAll() {
+unction selAll() {
   MODAL_SEL = [];
   Object.keys(MANZANAS).forEach(function(mz) {
     Object.keys(MANZANAS[mz]).forEach(function(k) { MODAL_SEL.push(parseInt(k)); });
@@ -792,4 +792,134 @@ function confirmModal() {
   var cnt = MODAL_SEL.length;
   var btn = document.getElementById('vb-' + pid);
   if (btn) {
-    btn.className = 'viv-btn' + (cnt > 0 ? ' filled
+    btn.className = 'viv-btn' + (cnt > 0 ? ' filled' : '');
+    var span = btn.querySelector('.viv-cnt');
+    if (span) span.textContent = cnt > 0 ? cnt : '';
+  }
+  setFilled(pid, cnt > 0);
+  refreshProgress();
+  closeModal();
+}
+
+// ---- GUARDAR EN SHEET ----
+function doSave() {
+  if (!CURRENT_SEMANA) {
+    alert('No hay semana activa. Espera a que cargue o vuelve a intentar.');
+    return;
+  }
+  var st = document.getElementById('save-st');
+  st.textContent = 'Guardando…'; st.style.color = '#8899bb';
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'saveAuditData', semana: CURRENT_SEMANA, rol: ROLE, datos: DATA[ROLE] })
+  })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d && d.ok) {
+        st.textContent = '✓ Guardado ' + new Date().toLocaleTimeString('es-CL', {hour:'2-digit',minute:'2-digit'});
+        st.style.color = '#1a9b5a';
+      } else {
+        st.textContent = '⚠ Error al guardar: ' + (d && d.error ? d.error : 'desconocido');
+        st.style.color = '#cc4422';
+      }
+    })
+    .catch(function(){
+      st.textContent = '⚠ Sin conexión';
+      st.style.color = '#cc4422';
+    });
+}
+
+// ---- COMPARACIÓN ----
+function showCompare() {
+  document.getElementById('btn-nav-audit').classList.remove('active');
+  document.getElementById('btn-nav-cmp').classList.add('active');
+  var con = document.getElementById('cmp-container');
+  con.innerHTML = '';
+
+  var allP = [];
+  CHAPTERS.forEach(function(ch) { allP = allP.concat(getPartidas(ch)); });
+
+  var diffs = 0, ok = 0, onlyJt = 0, onlyCal = 0;
+
+  CHAPTERS.forEach(function(ch) {
+    var chP = getPartidas(ch);
+    var card = makeEl('div', 'cmp-card');
+    var top = makeEl('div', 'cmp-top');
+    var tit = makeEl('div', 'cmp-top-tit'); tit.textContent = ch.titulo; top.appendChild(tit);
+    card.appendChild(top);
+
+    var hrow = makeEl('div', 'cmp-hrow');
+    hrow.innerHTML = '<span>Partida</span><span style="text-align:center">JT</span><span style="text-align:center">Calidad</span><span style="text-align:center">Dif</span>';
+    card.appendChild(hrow);
+
+    chP.forEach(function(p) {
+      var jv = DATA.jt[p.id], cv = DATA.cal[p.id];
+      var hasJt = hasVal('jt', p.id), hasCal = hasVal('cal', p.id);
+      if (!hasJt && !hasCal) return;
+
+      var row = makeEl('div', 'cmp-row');
+      var pn = makeEl('div', 'cmp-pn');
+      var pnum = makeEl('span', 'cmp-pnum'); pnum.textContent = '#' + p.id; pn.appendChild(pnum);
+      pn.appendChild(document.createTextNode(p.nombre));
+      row.appendChild(pn);
+
+      function fmtVal(v, tipo) {
+        if (v === undefined || v === null) return '—';
+        if (tipo === 'viv') return Array.isArray(v) ? v.length + ' viv' : '—';
+        return v + '%';
+      }
+      function eqVal(jv, cv, tipo) {
+        if (!hasJt || !hasCal) return false;
+        if (tipo === 'viv') {
+          var ja = Array.isArray(jv) ? jv.slice().sort().join(',') : '';
+          var ca = Array.isArray(cv) ? cv.slice().sort().join(',') : '';
+          return ja === ca;
+        }
+        return Math.abs((jv||0) - (cv||0)) < 0.01;
+      }
+
+      var eq = eqVal(jv, cv, p.tipo);
+      if (hasJt && hasCal) { if (eq) ok++; else diffs++; }
+      else if (hasJt) onlyJt++;
+      else onlyCal++;
+
+      var jtCell = makeEl('div', 'cmp-val ' + (hasJt ? (eq || !hasCal ? 'ok' : 'diff') : ''));
+      jtCell.textContent = fmtVal(jv, p.tipo);
+      var calCell = makeEl('div', 'cmp-val ' + (hasCal ? (eq || !hasJt ? 'ok' : 'diff') : ''));
+      calCell.textContent = fmtVal(cv, p.tipo);
+
+      var difCell = makeEl('div', 'cmp-val');
+      if (!hasJt || !hasCal) {
+        difCell.innerHTML = '<span class="diff-badge">Solo ' + (hasJt ? 'JT' : 'CAL') + '</span>';
+      } else if (eq) {
+        difCell.innerHTML = '<span class="ok-badge">✓</span>';
+      } else {
+        difCell.innerHTML = '<span class="diff-badge">✗</span>';
+      }
+
+      row.appendChild(jtCell); row.appendChild(calCell); row.appendChild(difCell);
+      card.appendChild(row);
+    });
+
+    var sum = makeEl('div', 'cmp-sum');
+    var items = [
+      { n: diffs, lbl: 'Diferencias', cls: diffs > 0 ? 'diff' : 'ok' },
+      { n: ok, lbl: 'Coinciden', cls: 'ok' },
+      { n: onlyJt + onlyCal, lbl: 'Solo uno', cls: '' }
+    ];
+    items.forEach(function(it) {
+      var item = makeEl('div', 'cmp-sum-item');
+      var num = makeEl('div', 'cmp-sum-n ' + it.cls); num.textContent = it.n; item.appendChild(num);
+      var lbl = makeEl('div', 'cmp-sum-lbl'); lbl.textContent = it.lbl; item.appendChild(lbl);
+      sum.appendChild(item);
+    });
+    card.appendChild(sum);
+    con.appendChild(card);
+  });
+
+  showScreen('sc-compare');
+}
+</script>
+</body>
+</html>
