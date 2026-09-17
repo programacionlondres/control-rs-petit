@@ -121,6 +121,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
     <button class="bh" onclick="openPin()">Admin</button>
     <button class="bh" onclick="exportar()">Exportar</button>
     <button class="bh" style="background:#E18426;color:#fff;font-weight:600" onclick="abrirInformeSemanal()">Informe</button>
+    <button class="bh" style="background:#1A1846;color:#fff;font-weight:600" onclick="abrirHistoricoRS()">📊 Histórico</button>
     <button class="bh" id="btn-sync" style="background:#27AE60;color:#fff;font-weight:600" onclick="sincronizarRS()">⟳ Sync</button>
     <button class="bh" style="background:#FF6B6B;color:#fff;font-weight:600" onclick="cerrarDiaRs()">Cerrar dia</button>
     <button class="bh" onclick="capturar()" id="btn-cap">Imagen</button>
@@ -2655,6 +2656,20 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
     </div>
   </div>
 </div>
+<div class="mr-sem" id="mr-hist" onclick="if(event.target===this)cerrarHistoricoRS()">
+  <div class="mrd-sem" id="mrd-hist">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#1A1846">Histórico Semanal</div>
+        <div style="font-size:10px;color:#888">Acumulado y avance parcial por hito · últimas 4 semanas</div>
+      </div>
+      <button onclick="cerrarHistoricoRS()" style="background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:#888;padding:0 4px">&times;</button>
+    </div>
+    <table id="hist-tabla" style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:.5rem"></table>
+    <div id="hist-nota" style="font-size:9px;color:#aaa;text-align:center;margin-bottom:.75rem">Los cortes semanales se generan automáticamente. "Acumulado" refleja el estado actual en vivo.</div>
+    <button onclick="cerrarHistoricoRS()" style="width:100%;padding:9px;border-radius:8px;border:1px solid #ccc;background:#f5f5f3;font-size:13px;cursor:pointer">Cerrar</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 <div class="barra-sel" id="barra-sel">
   <span id="barra-sel-txt">0 seleccionados</span>
@@ -3151,6 +3166,74 @@ function cerrarInforme(){
   document.getElementById("mr-sem").classList.remove("v");
 }
 
+// ── Histórico semanal (Acumulado en vivo + parcial de las últimas 4 semanas) ──
+function accHitosLiveRS(){
+  var sg=0,r0=0,r1=0,rf=0;
+  for(var i=0;i<MANZANAS.length;i++)for(var j=0;j<MANZANAS[i].lotes.length;j++){
+    var u=uH(gH(MANZANAS[i].id,MANZANAS[i].lotes[j]));
+    if(u==="sg")sg++;else if(u==="r0"||u==="r0obs")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;
+  }
+  return {sg:sg+r0+r1+rf,r0:r0+r1+rf,r1:r1+rf,rf:rf};
+}
+
+function abrirHistoricoRS(){
+  document.getElementById("mr-hist").classList.add("v");
+  document.getElementById("hist-tabla").innerHTML="<tr><td style='padding:14px;text-align:center;color:#888;font-size:11px'>Cargando…</td></tr>";
+  fetch(SCRIPT_URL+"?accion=get_historico_rs&_="+Date.now(),{cache:"no-store"})
+    .then(function(r){return r.json();})
+    .catch(function(){return null;})
+    .then(function(data){
+      if(!data||!data.ok){
+        renderHistoricoRS([],true);
+        return;
+      }
+      renderHistoricoRS(data.snapshots||[],false);
+    });
+}
+
+function cerrarHistoricoRS(){
+  document.getElementById("mr-hist").classList.remove("v");
+}
+
+function renderHistoricoRS(snapshots,error){
+  var live=accHitosLiveRS();
+  var hitos=[{k:"sg",l:"Sello gris",c:"#185FA5"},{k:"r0",l:"&ge; R0",c:"#BA7517"},{k:"r1",l:"&ge; R1",c:"#3B6D11"},{k:"rf",l:"RF",c:"#1D9E75"}];
+  var deltas=[];
+  if(snapshots&&snapshots.length>0){
+    for(var i=0;i<snapshots.length;i++){
+      var prev=i>0?snapshots[i-1]:{sg:0,r0:0,r1:0,rf:0};
+      deltas.push({
+        fecha:snapshots[i].fecha,
+        sg:snapshots[i].sg-prev.sg,
+        r0:snapshots[i].r0-prev.r0,
+        r1:snapshots[i].r1-prev.r1,
+        rf:snapshots[i].rf-prev.rf
+      });
+    }
+    deltas=deltas.slice(-4);
+  }
+  var html="<tr style='background:#f5f5f3'><th style='padding:5px 6px;text-align:left;border-bottom:1px solid #ddd'>Hito</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd'>Acumulado</th>";
+  deltas.forEach(function(d){
+    html+="<th style='padding:5px;text-align:center;border-bottom:1px solid #ddd;font-size:9px;color:#888'>Sem. "+d.fecha+"</th>";
+  });
+  html+="</tr>";
+  hitos.forEach(function(h){
+    html+="<tr style='border-bottom:1px solid #eee'><td style='padding:5px 6px;font-weight:500'>"+h.l+"</td><td style='padding:5px;text-align:center;color:"+h.c+";font-weight:700'>"+live[h.k]+"</td>";
+    deltas.forEach(function(d){
+      var v=d[h.k];
+      html+="<td style='padding:5px;text-align:center;color:"+h.c+"'>"+(v>=0?"+":"")+v+"</td>";
+    });
+    html+="</tr>";
+  });
+  document.getElementById("hist-tabla").innerHTML=html;
+  var nota=document.getElementById("hist-nota");
+  if(nota){
+    if(error) nota.textContent="No se pudo conectar con Google Sheets. El acumulado mostrado es el estado local.";
+    else if(!snapshots||snapshots.length===0) nota.textContent="Aún no hay cortes semanales guardados. Aparecerán aquí automáticamente cada semana.";
+    else nota.textContent="Los cortes semanales se generan automáticamente. \"Acumulado\" refleja el estado actual en vivo.";
+  }
+}
+
 function descargarInforme(){
   var target=document.getElementById("mrd-sem");
   html2canvas(target,{scale:2,useCORS:true,backgroundColor:"#ffffff"}).then(function(canvas){
@@ -3242,7 +3325,12 @@ function cerrarTipologia(){document.getElementById("mo-tip").classList.remove("v
 // ── Sync multi-dispositivo con Google Sheets ──
 function sincronizarLoteRS(mz,l,hitos){
   var url=SCRIPT_URL+"?accion=set_lote_rs&mz="+encodeURIComponent(mz)+"&lote="+encodeURIComponent(l)+"&hitos="+encodeURIComponent(JSON.stringify(hitos));
-  fetch(url,{cache:"no-store"}).catch(function(){});
+  fetch(url,{cache:"no-store"})
+    .then(function(r){return r.json();})
+    .then(function(r){
+      if(!r||!r.ok)showT("⚠ No se guardó en Google Sheets (solo quedó local)");
+    })
+    .catch(function(){showT("⚠ Sin conexión con Google Sheets - solo quedó local");});
 }
 
 function showTOk(m){
@@ -3262,63 +3350,16 @@ function inicializarRS(){
         if(btnSync)btnSync.textContent="⟳ Sync";
         showT("Sin conexión - datos locales");return;
       }
-      var actualizados=0;
-      var paraSubir=[];
+      // Google Sheets manda siempre: se pisa la caché local de este navegador con lo
+      // que diga el servidor. Nunca se sube de vuelta lo que ya estaba guardado antes
+      // en localStorage (eso era lo que revivía avances viejos después de un reinicio).
       for(var i=0;i<data.datos.length;i++){
         var d=data.datos[i];
-        var localH=gH(d.mz,d.lote);
-        var remotoH=d.hitos||[];
-        if(remotoH.length>localH.length){
-          localStorage.setItem("rs_"+d.mz+"_"+d.lote,JSON.stringify(remotoH));
-          actualizados++;
-        } else if(localH.length>remotoH.length){
-          paraSubir.push({mz:d.mz,lote:d.lote,hitos:localH});
-        }
+        localStorage.setItem("rs_"+d.mz+"_"+d.lote,JSON.stringify(d.hitos||[]));
       }
-      // subir lotes locales que no están en Sheets
-      for(var k=0;k<localStorage.length;k++){
-        var key=localStorage.key(k);
-        if(!key||key.indexOf("rs_")!==0)continue;
-        var parts=key.slice(3).split("_");
-        if(parts.length<2)continue;
-        var mzL=parts[0],lL=Number(parts[1]);
-        var enSheets=false;
-        for(var j=0;j<data.datos.length;j++){
-          if(String(data.datos[j].mz)===String(mzL)&&Number(data.datos[j].lote)===lL){enSheets=true;break;}
-        }
-        if(!enSheets){
-          var localHl=gH(mzL,lL);
-          if(localHl.length>0)paraSubir.push({mz:mzL,lote:lL,hitos:localHl});
-        }
-      }
-      // Siempre se vuelve a pintar con lo que diga Google Sheets (no depender de localStorage)
       renderRes();renderManzanas();updateSVG();
-      if(paraSubir.length>0){
-        if(btnSync)btnSync.textContent="↑ "+paraSubir.length+"...";
-        showT("Subiendo "+paraSubir.length+" lotes...");
-        var bIdx=0,batches=[];
-        for(var i=0;i<paraSubir.length;i+=10)batches.push(paraSubir.slice(i,i+10));
-        function nextBatch(){
-          if(bIdx>=batches.length){
-            if(btnSync)btnSync.textContent="⟳ Sync";
-            showTOk("✓ Sincronizado · ya visible en otros dispositivos");
-            return;
-          }
-          var b=batches[bIdx++];
-          Promise.all(b.map(function(item){
-            return fetch(SCRIPT_URL+"?accion=set_lote_rs&mz="+encodeURIComponent(item.mz)+"&lote="+encodeURIComponent(item.lote)+"&hitos="+encodeURIComponent(JSON.stringify(item.hitos)),{cache:"no-store"})
-              .catch(function(){return null;});
-          })).then(function(){nextBatch();});
-        }
-        nextBatch();
-      } else {
-        if(btnSync)btnSync.textContent="⟳ Sync";
-        if(actualizados>0){
-          showTOk("⟳ "+actualizados+" lotes actualizados desde otra app");
-        } else {
-          showTOk("✓ Sincronizado · ya visible en otros dispositivos");
-        }
-      }
+      if(btnSync)btnSync.textContent="⟳ Sync";
+      showTOk("✓ Sincronizado con Google Sheets");
     });
 }
 
@@ -3334,17 +3375,17 @@ setInterval(function(){
     .catch(function(){return null;})
     .then(function(data){
       if(!data||!data.ok)return;
-      var actualizados=0;
+      var cambios=0;
       for(var i=0;i<data.datos.length;i++){
         var d=data.datos[i];
         var localH=gH(d.mz,d.lote);
         var remotoH=d.hitos||[];
-        if(remotoH.length>localH.length){
+        if(JSON.stringify(remotoH)!==JSON.stringify(localH)){
           localStorage.setItem("rs_"+d.mz+"_"+d.lote,JSON.stringify(remotoH));
-          actualizados++;
+          cambios++;
         }
       }
-      if(actualizados>0){renderRes();renderManzanas();updateSVG();showT("⟳ "+actualizados+" lotes actualizados");}
+      if(cambios>0){renderRes();renderManzanas();updateSVG();showT("⟳ "+cambios+" lotes actualizados");}
     });
 },20000);
 </script>
