@@ -36,7 +36,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .mz-nombre{font-size:13px;font-weight:600;color:#002060}
 .mz-stats{font-size:11px;color:#888}
 .lotes-grid{display:flex;flex-wrap:wrap;gap:4px}
-.c{width:34px;height:30px;border-radius:4px;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;font-weight:600;color:#888;background:#f8f8f5;user-select:none;transition:transform .1s}
+.c{position:relative;width:34px;height:30px;border-radius:4px;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;font-weight:600;color:#888;background:#f8f8f5;user-select:none;transition:transform .1s}
 .c:hover{transform:scale(1.15);z-index:2;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.15)}
 .c.sg{background:#90C8FF;border-color:#1a5fa8;color:#003580}
 .c.r0{background:#90EE90;border-color:#2e8b2e;color:#1a4a1a}
@@ -70,6 +70,8 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .mbb button{flex:1;padding:9px;border-radius:8px;border:1px solid #ccc;background:#f5f5f3;cursor:pointer;font-size:13px;font-weight:500}
 .bgs{background:#1D9E75!important;color:#fff!important;border-color:#0F6E56!important}
 .c.sel{outline:3px solid #E18426;outline-offset:-2px}
+.selchk{position:absolute;top:-5px;left:-5px;width:15px;height:15px;border-radius:3px;border:1.5px solid #1A1846;background:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;color:transparent;font-weight:700;z-index:3;cursor:pointer}
+.selchk.on{background:#E18426;border-color:#E18426;color:#fff}
 .mz-selall{font-size:9px;padding:2px 8px;border-radius:99px;border:1px solid #1A1846;background:#fff;color:#1A1846;cursor:pointer;margin-left:6px;vertical-align:middle}
 .mz-selall.on{background:#1A1846;color:#fff}
 .barra-sel{position:fixed;left:0;right:0;bottom:0;background:#1A1846;color:#fff;padding:10px 14px;display:none;align-items:center;justify-content:space-between;gap:10px;z-index:250;box-shadow:0 -4px 16px rgba(0,0,0,.25);font-size:12px;font-weight:600}
@@ -122,7 +124,6 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
     <button class="bh" id="btn-sync" style="background:#27AE60;color:#fff;font-weight:600" onclick="sincronizarRS()">⟳ Sync</button>
     <button class="bh" style="background:#FF6B6B;color:#fff;font-weight:600" onclick="cerrarDiaRs()">Cerrar dia</button>
     <button class="bh" onclick="capturar()" id="btn-cap">Imagen</button>
-    <button class="bh" style="background:#8B0000;color:#fff;font-weight:600" onclick="resetearTodoRS()" title="Borra el avance de todos los lotes, local y en Google Sheets">&#9888; Reset total</button>
   </div>
 </div>
 <div class="resumen" id="res"></div>
@@ -138,7 +139,6 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
   <button class="fb" id="f-rf" onclick="filtrar('rf')">RF</button>
   <button class="fb" id="f-nd" onclick="filtrar('nd')">Sin inicio</button>
   <button class="fb" style="background:#1A1846;color:#fff;border-color:#1A1846;margin-left:4px" onclick="toggleModoTip()">&#9638; Tipología</button>
-  <button class="fb" id="f-multi" style="border-color:#E18426;color:#E18426;margin-left:4px" onclick="toggleModoSel()">&#9745; Selección múltiple</button>
 </div>
 <div class="ley" id="ley">
   <div class="li"><div class="lc" style="background:#f8f8f5;border-color:#ccc"></div>Sin inicio</div>
@@ -2672,7 +2672,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 <script>
 var SCRIPT_URL="https://script.google.com/macros/s/AKfycbwZr2aE9Mv7As6gPi0mzoEqM1UgvMKZreBYgWCYdr9yA5989gs88429I24RXvSLb2YcHg/exec";  // Sheet Petit: 1uA7lpNxbq9_vPJUR-t-hrdne8F9s9TvOKir_2M3sgZ8
 var PIN="0525",admin=false,fa="todos",ca=null,ht=[],pc=null,modTip=false;
-var modoSel=false,pendingMulti=false,pendingReset=false,htBulk=[];
+var htBulk=[];
 var selLotes=new Set();
 var ET=["sg","r0","r0obs","r1","rf"];
 var EN={sg:1,r0:2,r0obs:2,r1:3,rf:4};
@@ -2772,7 +2772,7 @@ function renderManzanas(){
     for(var j=0;j<mz.lotes.length;j++){var u=uH(gH(mz.id,mz.lotes[j]));if(u==="sg")sg++;else if(u==="r0")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;}
     var tot=mz.lotes.length,acRF=rf;
     var blq=document.createElement("div");blq.className="mz-bloque";
-    var selAllBtn=modoSel?"<button class='mz-selall' id='selall-"+mz.id+"' onclick=\"toggleSelManzana('"+mz.id+"')\">Seleccionar todo</button>":"";
+    var selAllBtn=admin?"<button class='mz-selall' id='selall-"+mz.id+"' onclick=\"toggleSelManzana('"+mz.id+"')\">Seleccionar todo</button>":"";
     blq.innerHTML="<div class='mz-header'><div class='mz-nombre'>"+mz.nombre+" <span style='font-weight:400;color:#aaa'>("+tot+" lotes)</span>"+selAllBtn+"</div>"+
       "<div class='mz-stats'>SG:"+(sg+r0+r1+rf)+" R0:"+(r0+r1+rf)+" R1:"+(r1+rf)+" <span style='color:#1D9E75;font-weight:600'>RF:"+rf+"</span></div></div>"+
       "<div class='lotes-grid' id='grid-"+mz.id+"'></div>";
@@ -2808,9 +2808,16 @@ function renderManzanas(){
       d.innerHTML=numTxt+'<div style="font-size:7px;line-height:1.1;opacity:0.75;margin-top:1px">'+tAbbr[tipKey]+'</div>';
       if(!dv(h,fa))d.classList.add("oculta");
       d.addEventListener("click",(function(mzid,lot){return function(){click(mzid,lot);};})(mz.id,l));
+      if(admin){
+        var chkSel=document.createElement("div");
+        chkSel.className="selchk"+(selLotes.has(mz.id+"-"+l)?" on":"");
+        chkSel.textContent="✓";
+        chkSel.addEventListener("click",(function(mzid,lot){return function(ev){ev.stopPropagation();toggleSelLote(mzid,lot);};})(mz.id,l));
+        d.appendChild(chkSel);
+      }
       grid.appendChild(d);
     }
-    if(modoSel){
+    if(admin){
       var allSel=mz.lotes.every(function(lNum){return selLotes.has(mz.id+"-"+lNum);});
       var sab=document.getElementById("selall-"+mz.id);
       if(sab)sab.classList.toggle("on",allSel);
@@ -2861,27 +2868,16 @@ function filtrar(f){
 
 function click(mz,l){
   if(!admin){pc={mz:mz,l:l};openPin();return;}
-  if(modoSel){toggleSelLote(mz,l);return;}
   openModal(mz,l);
 }
 
-// ── Selección múltiple ──
-function toggleModoSel(){
-  if(!admin){pendingMulti=true;openPin();return;}
-  modoSel=!modoSel;
-  document.getElementById("f-multi").classList.toggle("on",modoSel);
-  if(!modoSel){
-    selLotes.clear();
-    document.getElementById("barra-sel").classList.remove("v");
-  }
-  renderManzanas();updateSVG();
-}
-
+// ── Selección múltiple (siempre disponible una vez ingresado el PIN admin) ──
 function toggleSelLote(mz,l){
   var key=mz+"-"+l;
   var cell=document.querySelector('.c[data-mz="'+mz+'"][data-l="'+l+'"]');
-  if(selLotes.has(key)){selLotes.delete(key);if(cell)cell.classList.remove("sel");}
-  else{selLotes.add(key);if(cell)cell.classList.add("sel");}
+  var chk=cell?cell.querySelector(".selchk"):null;
+  if(selLotes.has(key)){selLotes.delete(key);if(cell)cell.classList.remove("sel");if(chk)chk.classList.remove("on");}
+  else{selLotes.add(key);if(cell)cell.classList.add("sel");if(chk)chk.classList.add("on");}
   var mzObj=MANZANAS.find(function(m){return m.id===mz;});
   if(mzObj){
     var allSel=mzObj.lotes.every(function(lNum){return selLotes.has(mz+"-"+lNum);});
@@ -2898,8 +2894,9 @@ function toggleSelManzana(mzId){
   mzObj.lotes.forEach(function(lNum){
     var key=mzId+"-"+lNum;
     var cell=document.querySelector('.c[data-mz="'+mzId+'"][data-l="'+lNum+'"]');
-    if(allSel){selLotes.delete(key);if(cell)cell.classList.remove("sel");}
-    else{selLotes.add(key);if(cell)cell.classList.add("sel");}
+    var chk=cell?cell.querySelector(".selchk"):null;
+    if(allSel){selLotes.delete(key);if(cell)cell.classList.remove("sel");if(chk)chk.classList.remove("on");}
+    else{selLotes.add(key);if(cell)cell.classList.add("sel");if(chk)chk.classList.add("on");}
   });
   var sab=document.getElementById("selall-"+mzId);
   if(sab)sab.classList.toggle("on",!allSel);
@@ -2976,35 +2973,6 @@ function guardarBulk(){
   nextBatch();
 }
 
-// ── Reset total (borra local + Google Sheets) ──
-function resetearTodoRS(){
-  if(!admin){pendingReset=true;openPin();return;}
-  if(!confirm("¿Seguro que quieres reiniciar TODO el avance? Se borrará el estado local y el de Google Sheets para todos los lotes."))return;
-  if(!confirm("Esta acción no se puede deshacer. ¿Confirmas el reinicio total?"))return;
-  showT("Reiniciando...");
-  var claves=[];
-  for(var i=0;i<MANZANAS.length;i++){
-    var mz=MANZANAS[i];
-    for(var j=0;j<mz.lotes.length;j++){
-      sH(mz.id,mz.lotes[j],[]);
-      claves.push({mz:mz.id,lote:mz.lotes[j]});
-    }
-  }
-  selLotes.clear();
-  actualizarBarraSel();
-  renderRes();renderManzanas();updateSVG();
-  var bIdx=0,batches=[];
-  for(var i=0;i<claves.length;i+=10)batches.push(claves.slice(i,i+10));
-  function nextBatch(){
-    if(bIdx>=batches.length){showTOk("✓ Avance reiniciado en todos los dispositivos");return;}
-    var b=batches[bIdx++];
-    Promise.all(b.map(function(item){
-      return fetch(SCRIPT_URL+"?accion=set_lote_rs&mz="+encodeURIComponent(item.mz)+"&lote="+encodeURIComponent(item.lote)+"&hitos="+encodeURIComponent(JSON.stringify([])),{cache:"no-store"}).catch(function(){return null;});
-    })).then(nextBatch);
-  }
-  nextBatch();
-}
-
 function openModal(mz,l){
   ca={mz:mz,l:l};ht=gH(mz,l).slice();
   document.getElementById("mt").textContent="Manzana "+mz+" - Lote "+l;
@@ -3057,8 +3025,7 @@ function vp(){
     if(v===PIN){
       admin=true;document.getElementById("ab").classList.add("v");cp();
       if(pc){openModal(pc.mz,pc.l);pc=null;}
-      else if(pendingMulti){pendingMulti=false;modoSel=true;document.getElementById("f-multi").classList.add("on");renderManzanas();updateSVG();}
-      else if(pendingReset){pendingReset=false;resetearTodoRS();}
+      else{renderManzanas();updateSVG();}
       showT("Admin activado");
     }
     else document.getElementById("pe").style.display="block";
