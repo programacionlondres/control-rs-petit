@@ -69,6 +69,15 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .mbb{display:flex;gap:8px;margin-top:1rem}
 .mbb button{flex:1;padding:9px;border-radius:8px;border:1px solid #ccc;background:#f5f5f3;cursor:pointer;font-size:13px;font-weight:500}
 .bgs{background:#1D9E75!important;color:#fff!important;border-color:#0F6E56!important}
+.c.sel{outline:3px solid #E18426;outline-offset:-2px}
+.mz-selall{font-size:9px;padding:2px 8px;border-radius:99px;border:1px solid #1A1846;background:#fff;color:#1A1846;cursor:pointer;margin-left:6px;vertical-align:middle}
+.mz-selall.on{background:#1A1846;color:#fff}
+.barra-sel{position:fixed;left:0;right:0;bottom:0;background:#1A1846;color:#fff;padding:10px 14px;display:none;align-items:center;justify-content:space-between;gap:10px;z-index:250;box-shadow:0 -4px 16px rgba(0,0,0,.25);font-size:12px;font-weight:600}
+.barra-sel.v{display:flex}
+.barra-sel .bsb{display:flex;gap:8px}
+.barra-sel button{padding:8px 14px;border-radius:8px;border:none;font-size:12px;font-weight:600;cursor:pointer}
+.barra-sel .btn-aplicar{background:#E18426;color:#fff}
+.barra-sel .btn-cancelar{background:rgba(255,255,255,.15);color:#fff}
 .po{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:200}
 .po.v{display:flex}
 .pm{background:#fff;border-radius:12px;padding:1.25rem;width:250px}
@@ -113,6 +122,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
     <button class="bh" id="btn-sync" style="background:#27AE60;color:#fff;font-weight:600" onclick="sincronizarRS()">⟳ Sync</button>
     <button class="bh" style="background:#FF6B6B;color:#fff;font-weight:600" onclick="cerrarDiaRs()">Cerrar dia</button>
     <button class="bh" onclick="capturar()" id="btn-cap">Imagen</button>
+    <button class="bh" style="background:#8B0000;color:#fff;font-weight:600" onclick="resetearTodoRS()" title="Borra el avance de todos los lotes, local y en Google Sheets">&#9888; Reset total</button>
   </div>
 </div>
 <div class="resumen" id="res"></div>
@@ -128,6 +138,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
   <button class="fb" id="f-rf" onclick="filtrar('rf')">RF</button>
   <button class="fb" id="f-nd" onclick="filtrar('nd')">Sin inicio</button>
   <button class="fb" style="background:#1A1846;color:#fff;border-color:#1A1846;margin-left:4px" onclick="toggleModoTip()">&#9638; Tipología</button>
+  <button class="fb" id="f-multi" style="border-color:#E18426;color:#E18426;margin-left:4px" onclick="toggleModoSel()">&#9745; Selección múltiple</button>
 </div>
 <div class="ley" id="ley">
   <div class="li"><div class="lc" style="background:#f8f8f5;border-color:#ccc"></div>Sin inicio</div>
@@ -2645,9 +2656,24 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="barra-sel" id="barra-sel">
+  <span id="barra-sel-txt">0 seleccionados</span>
+  <div class="bsb">
+    <button class="btn-cancelar" onclick="cancelarSeleccion()">Cancelar</button>
+    <button class="btn-aplicar" onclick="abrirBulk()">Aplicar estado</button>
+  </div>
+</div>
+<div class="mo" id="mo-bulk" onclick="if(event.target===this)cerrarBulk()">
+  <div class="md"><h3 id="mt-bulk"></h3><div class="mds">Este estado se aplicará a todos los lotes seleccionados</div>
+    <div class="hs" id="mh-bulk"></div>
+    <div class="mbb"><button onclick="cerrarBulk()">Cancelar</button><button class="bgs" onclick="guardarBulk()">Aplicar</button></div>
+  </div>
+</div>
 <script>
-var SCRIPT_URL="https://script.google.com/macros/s/AKfycbw4eavwtaKIqO9dTJ-5lGvzNL1lG4zQ7vQK9XTBoC2wv8sTnKTUeejuwfUliXocA5HykQ/exec";  // Pendiente: desplegar Apps Script en Sheet 1MWsqjv9RarvRz2F3dSWFXHAlt76Qs3ujHdmux5fxVTI
-var PIN="1025",admin=false,fa="todos",ca=null,ht=[],pc=null,modTip=false;
+var SCRIPT_URL="https://script.google.com/macros/s/AKfycbwZr2aE9Mv7As6gPi0mzoEqM1UgvMKZreBYgWCYdr9yA5989gs88429I24RXvSLb2YcHg/exec";  // Sheet Petit: 1uA7lpNxbq9_vPJUR-t-hrdne8F9s9TvOKir_2M3sgZ8
+var PIN="0525",admin=false,fa="todos",ca=null,ht=[],pc=null,modTip=false;
+var modoSel=false,pendingMulti=false,pendingReset=false,htBulk=[];
+var selLotes=new Set();
 var ET=["sg","r0","r0obs","r1","rf"];
 var EN={sg:1,r0:2,r0obs:2,r1:3,rf:4};
 var EL={sg:"Sello gris",r0:"R0",r0obs:"R0 + Observaciones",r1:"R1",rf:"RF"};
@@ -2746,7 +2772,8 @@ function renderManzanas(){
     for(var j=0;j<mz.lotes.length;j++){var u=uH(gH(mz.id,mz.lotes[j]));if(u==="sg")sg++;else if(u==="r0")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;}
     var tot=mz.lotes.length,acRF=rf;
     var blq=document.createElement("div");blq.className="mz-bloque";
-    blq.innerHTML="<div class='mz-header'><div class='mz-nombre'>"+mz.nombre+" <span style='font-weight:400;color:#aaa'>("+tot+" lotes)</span></div>"+
+    var selAllBtn=modoSel?"<button class='mz-selall' id='selall-"+mz.id+"' onclick=\"toggleSelManzana('"+mz.id+"')\">Seleccionar todo</button>":"";
+    blq.innerHTML="<div class='mz-header'><div class='mz-nombre'>"+mz.nombre+" <span style='font-weight:400;color:#aaa'>("+tot+" lotes)</span>"+selAllBtn+"</div>"+
       "<div class='mz-stats'>SG:"+(sg+r0+r1+rf)+" R0:"+(r0+r1+rf)+" R1:"+(r1+rf)+" <span style='color:#1D9E75;font-weight:600'>RF:"+rf+"</span></div></div>"+
       "<div class='lotes-grid' id='grid-"+mz.id+"'></div>";
     cont.appendChild(blq);
@@ -2763,6 +2790,7 @@ function renderManzanas(){
         if (u) cls += " " + u;
         else if (cf) cls += " " + cf;
       }
+      if(selLotes.has(mz.id+"-"+l))cls+=" sel";
       d.className=cls;
       d.dataset.mz=mz.id;d.dataset.l=l;
       if(modTip){
@@ -2781,6 +2809,11 @@ function renderManzanas(){
       if(!dv(h,fa))d.classList.add("oculta");
       d.addEventListener("click",(function(mzid,lot){return function(){click(mzid,lot);};})(mz.id,l));
       grid.appendChild(d);
+    }
+    if(modoSel){
+      var allSel=mz.lotes.every(function(lNum){return selLotes.has(mz.id+"-"+lNum);});
+      var sab=document.getElementById("selall-"+mz.id);
+      if(sab)sab.classList.toggle("on",allSel);
     }
   }
 }
@@ -2826,7 +2859,151 @@ function filtrar(f){
   updateSVG();
 }
 
-function click(mz,l){if(!admin){pc={mz:mz,l:l};openPin();return;}openModal(mz,l);}
+function click(mz,l){
+  if(!admin){pc={mz:mz,l:l};openPin();return;}
+  if(modoSel){toggleSelLote(mz,l);return;}
+  openModal(mz,l);
+}
+
+// ── Selección múltiple ──
+function toggleModoSel(){
+  if(!admin){pendingMulti=true;openPin();return;}
+  modoSel=!modoSel;
+  document.getElementById("f-multi").classList.toggle("on",modoSel);
+  if(!modoSel){
+    selLotes.clear();
+    document.getElementById("barra-sel").classList.remove("v");
+  }
+  renderManzanas();updateSVG();
+}
+
+function toggleSelLote(mz,l){
+  var key=mz+"-"+l;
+  var cell=document.querySelector('.c[data-mz="'+mz+'"][data-l="'+l+'"]');
+  if(selLotes.has(key)){selLotes.delete(key);if(cell)cell.classList.remove("sel");}
+  else{selLotes.add(key);if(cell)cell.classList.add("sel");}
+  var mzObj=MANZANAS.find(function(m){return m.id===mz;});
+  if(mzObj){
+    var allSel=mzObj.lotes.every(function(lNum){return selLotes.has(mz+"-"+lNum);});
+    var sab=document.getElementById("selall-"+mz);
+    if(sab)sab.classList.toggle("on",allSel);
+  }
+  actualizarBarraSel();
+}
+
+function toggleSelManzana(mzId){
+  var mzObj=MANZANAS.find(function(m){return m.id===mzId;});
+  if(!mzObj)return;
+  var allSel=mzObj.lotes.every(function(lNum){return selLotes.has(mzId+"-"+lNum);});
+  mzObj.lotes.forEach(function(lNum){
+    var key=mzId+"-"+lNum;
+    var cell=document.querySelector('.c[data-mz="'+mzId+'"][data-l="'+lNum+'"]');
+    if(allSel){selLotes.delete(key);if(cell)cell.classList.remove("sel");}
+    else{selLotes.add(key);if(cell)cell.classList.add("sel");}
+  });
+  var sab=document.getElementById("selall-"+mzId);
+  if(sab)sab.classList.toggle("on",!allSel);
+  actualizarBarraSel();
+}
+
+function actualizarBarraSel(){
+  var n=selLotes.size;
+  document.getElementById("barra-sel-txt").textContent=n+(n===1?" lote seleccionado":" lotes seleccionados");
+  document.getElementById("barra-sel").classList.toggle("v",n>0);
+}
+
+function cancelarSeleccion(){
+  selLotes.clear();
+  renderManzanas();updateSVG();
+  document.getElementById("barra-sel").classList.remove("v");
+}
+
+function abrirBulk(){
+  if(selLotes.size===0)return;
+  htBulk=[];
+  document.getElementById("mt-bulk").textContent="Aplicar estado a "+selLotes.size+" lote(s)";
+  rHitosBulk();
+  document.getElementById("mo-bulk").classList.add("v");
+}
+
+function rHitosBulk(){
+  var c=document.getElementById("mh-bulk");c.innerHTML="";
+  for(var i=0;i<ET.length;i++){
+    var e=ET[i],m=htBulk.indexOf(e)>=0;
+    var r=document.createElement("div");
+    r.className="hr"+(m?" al "+e+"-h":"");
+    r.setAttribute("data-e",e);
+    r.onclick=function(){togBulk(this.getAttribute("data-e"));};
+    var chk=document.createElement("div");chk.className="hc"+(m?" m "+e+"-c":"");chk.textContent=m?"v":"";
+    var lb=document.createElement("div");lb.className="hl";lb.textContent=EL[e];
+    r.appendChild(chk);r.appendChild(lb);c.appendChild(r);
+  }
+}
+
+function togBulk(e){
+  if(htBulk.indexOf(e)>=0){htBulk=htBulk.filter(function(h){return EN[h]<EN[e];});}
+  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(htBulk.indexOf(ET[j])<0)htBulk.push(ET[j]);}
+  rHitosBulk();
+}
+
+function cerrarBulk(){document.getElementById("mo-bulk").classList.remove("v");}
+
+function guardarBulk(){
+  var claves=Array.from(selLotes);
+  var n=claves.length;
+  if(n===0){cerrarBulk();return;}
+  claves.forEach(function(key){
+    var parts=key.split("-");
+    var mz=parts[0],l=Number(parts[1]);
+    sH(mz,l,htBulk.slice());
+  });
+  cerrarBulk();
+  selLotes.clear();
+  actualizarBarraSel();
+  renderRes();renderManzanas();updateSVG();
+  showT("Aplicando a "+n+" lotes...");
+  var bIdx=0,batches=[];
+  for(var i=0;i<claves.length;i+=10)batches.push(claves.slice(i,i+10));
+  function nextBatch(){
+    if(bIdx>=batches.length){showTOk("✓ Estado aplicado a "+n+" lotes");return;}
+    var b=batches[bIdx++];
+    Promise.all(b.map(function(key){
+      var parts=key.split("-");
+      var mz=parts[0],l=Number(parts[1]);
+      return fetch(SCRIPT_URL+"?accion=set_lote_rs&mz="+encodeURIComponent(mz)+"&lote="+encodeURIComponent(l)+"&hitos="+encodeURIComponent(JSON.stringify(htBulk)),{cache:"no-store"}).catch(function(){return null;});
+    })).then(nextBatch);
+  }
+  nextBatch();
+}
+
+// ── Reset total (borra local + Google Sheets) ──
+function resetearTodoRS(){
+  if(!admin){pendingReset=true;openPin();return;}
+  if(!confirm("¿Seguro que quieres reiniciar TODO el avance? Se borrará el estado local y el de Google Sheets para todos los lotes."))return;
+  if(!confirm("Esta acción no se puede deshacer. ¿Confirmas el reinicio total?"))return;
+  showT("Reiniciando...");
+  var claves=[];
+  for(var i=0;i<MANZANAS.length;i++){
+    var mz=MANZANAS[i];
+    for(var j=0;j<mz.lotes.length;j++){
+      sH(mz.id,mz.lotes[j],[]);
+      claves.push({mz:mz.id,lote:mz.lotes[j]});
+    }
+  }
+  selLotes.clear();
+  actualizarBarraSel();
+  renderRes();renderManzanas();updateSVG();
+  var bIdx=0,batches=[];
+  for(var i=0;i<claves.length;i+=10)batches.push(claves.slice(i,i+10));
+  function nextBatch(){
+    if(bIdx>=batches.length){showTOk("✓ Avance reiniciado en todos los dispositivos");return;}
+    var b=batches[bIdx++];
+    Promise.all(b.map(function(item){
+      return fetch(SCRIPT_URL+"?accion=set_lote_rs&mz="+encodeURIComponent(item.mz)+"&lote="+encodeURIComponent(item.lote)+"&hitos="+encodeURIComponent(JSON.stringify([])),{cache:"no-store"}).catch(function(){return null;});
+    })).then(nextBatch);
+  }
+  nextBatch();
+}
 
 function openModal(mz,l){
   ca={mz:mz,l:l};ht=gH(mz,l).slice();
@@ -2877,14 +3054,20 @@ function cp(){document.getElementById("po").classList.remove("v");pc=null;}
 function vp(){
   var v=document.getElementById("pi").value;
   if(v.length>=4){
-    if(v===PIN){admin=true;document.getElementById("ab").classList.add("v");cp();if(pc){openModal(pc.mz,pc.l);pc=null;}showT("Admin activado");}
+    if(v===PIN){
+      admin=true;document.getElementById("ab").classList.add("v");cp();
+      if(pc){openModal(pc.mz,pc.l);pc=null;}
+      else if(pendingMulti){pendingMulti=false;modoSel=true;document.getElementById("f-multi").classList.add("on");renderManzanas();updateSVG();}
+      else if(pendingReset){pendingReset=false;resetearTodoRS();}
+      showT("Admin activado");
+    }
     else document.getElementById("pe").style.display="block";
   } else document.getElementById("pe").style.display="none";
 }
 
 function exportar(){
   var hoy=new Date().toLocaleDateString("es-CL");
-  var txt="CONTROL DE RS - ENRIQUE MATURANA\n"+hoy+"\n";
+  var txt="CONTROL DE RS - ENRIQUETA PETIT\n"+hoy+"\n";
   for(var i=0;i<MANZANAS.length;i++){
     var mz=MANZANAS[i],sg=0,r0=0,r1=0,rf=0;
     for(var j=0;j<mz.lotes.length;j++){var u=uH(gH(mz.id,mz.lotes[j]));if(u==="sg")sg++;else if(u==="r0")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;}
@@ -2930,7 +3113,7 @@ function capturar(){
       windowHeight:totalH
     }).then(function(canvas){
       var a=document.createElement('a');
-      a.download='reporte_rs_maturana_'+new Date().toISOString().slice(0,10)+'.png';
+      a.download='reporte_rs_petit_'+new Date().toISOString().slice(0,10)+'.png';
       a.href=canvas.toDataURL('image/png');
       a.click();
       btn.textContent='Imagen';
@@ -3141,7 +3324,8 @@ function inicializarRS(){
           if(localHl.length>0)paraSubir.push({mz:mzL,lote:lL,hitos:localHl});
         }
       }
-      if(actualizados>0){renderRes();renderManzanas();updateSVG();}
+      // Siempre se vuelve a pintar con lo que diga Google Sheets (no depender de localStorage)
+      renderRes();renderManzanas();updateSVG();
       if(paraSubir.length>0){
         if(btnSync)btnSync.textContent="↑ "+paraSubir.length+"...";
         showT("Subiendo "+paraSubir.length+" lotes...");
@@ -3195,7 +3379,7 @@ setInterval(function(){
       }
       if(actualizados>0){renderRes();renderManzanas();updateSVG();showT("⟳ "+actualizados+" lotes actualizados");}
     });
-},60000);
+},20000);
 </script>
 <div class="mo-tip" id="mo-tip" onclick="if(event.target===this)cerrarTipologia()">
   <div class="md-tip">
