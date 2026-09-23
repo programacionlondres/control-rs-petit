@@ -3166,10 +3166,15 @@ function abrirHistoricoRS(){
   document.getElementById("mr-hist").classList.add("v");
   document.getElementById("hist-meta").innerHTML="";
   document.getElementById("hist-tabla").innerHTML="<tr><td style='padding:14px;text-align:center;color:#888;font-size:11px'>Cargando…</td></tr>";
-  fetch(SCRIPT_URL+"?accion=get_historico_rs&_="+Date.now(),{cache:"no-store"})
+  var nota0=document.getElementById("hist-nota");
+  if(nota0) nota0.textContent="";
+  var ctrl=(typeof AbortController!=="undefined")?new AbortController():null;
+  var to=ctrl?setTimeout(function(){ctrl.abort();},15000):null;
+  fetch(SCRIPT_URL+"?accion=get_historico_rs&_="+Date.now(),{cache:"no-store",signal:ctrl?ctrl.signal:undefined})
     .then(function(r){return r.json();})
     .catch(function(){return null;})
     .then(function(data){
+      if(to)clearTimeout(to);
       if(!data||!data.ok){
         renderHistoricoRS([],true,null,null);
         return;
@@ -3240,7 +3245,7 @@ function renderHistoricoRS(snapshots,error,metaSemana,progAcumHoy){
   }
   var nota=document.getElementById("hist-nota");
   if(nota){
-    if(error) nota.textContent="No se pudo conectar con Google Sheets. El acumulado mostrado es el estado local.";
+    if(error) nota.innerHTML="No se pudo conectar con Google Sheets (tardó demasiado o se cortó la conexión). El acumulado mostrado es el estado local. <span onclick=\"abrirHistoricoRS()\" style=\"color:#1A1846;text-decoration:underline;cursor:pointer;font-weight:600\">Reintentar</span>";
     else if(!snapshots||snapshots.length===0) nota.textContent="Aún no hay cortes semanales guardados. Aparecerán aquí automáticamente cada semana.";
     else nota.textContent="\"Real acum.\" es el estado actual en vivo. \"Program. acum.\" es lo que debería llevar según el programa a esta fecha.";
   }
