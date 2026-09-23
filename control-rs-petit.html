@@ -2665,7 +2665,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
       <button onclick="cerrarHistoricoRS()" style="background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:#888;padding:0 4px">&times;</button>
     </div>
     <div id="hist-meta"></div>
-    <table id="hist-tabla" style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:.5rem"></table>
+    <div style="overflow-x:auto;margin-bottom:.5rem"><table id="hist-tabla" style="width:100%;border-collapse:collapse;font-size:11px"></table></div>
     <div id="hist-nota" style="font-size:9px;color:#aaa;text-align:center;margin-bottom:.75rem">Los cortes semanales se generan automáticamente. "Acumulado" refleja el estado actual en vivo.</div>
     <button onclick="cerrarHistoricoRS()" style="width:100%;padding:9px;border-radius:8px;border:1px solid #ccc;background:#f5f5f3;font-size:13px;cursor:pointer">Cerrar</button>
   </div>
@@ -3171,10 +3171,10 @@ function abrirHistoricoRS(){
     .catch(function(){return null;})
     .then(function(data){
       if(!data||!data.ok){
-        renderHistoricoRS([],true,null);
+        renderHistoricoRS([],true,null,null);
         return;
       }
-      renderHistoricoRS(data.snapshots||[],false,data.metaSemana||null);
+      renderHistoricoRS(data.snapshots||[],false,data.metaSemana||null,data.progAcumHoy||null);
     });
 }
 
@@ -3182,7 +3182,7 @@ function cerrarHistoricoRS(){
   document.getElementById("mr-hist").classList.remove("v");
 }
 
-function renderHistoricoRS(snapshots,error,metaSemana){
+function renderHistoricoRS(snapshots,error,metaSemana,progAcumHoy){
   var live=accHitosLiveRS();
   var hitos=[{k:"sg",l:"Sello gris",c:"#185FA5",prog:false},{k:"r0",l:"&ge; R0",c:"#BA7517",prog:true},{k:"r1",l:"&ge; R1",c:"#3B6D11",prog:true},{k:"rf",l:"RF",c:"#1D9E75",prog:true}];
   var deltas=[];
@@ -3198,13 +3198,15 @@ function renderHistoricoRS(snapshots,error,metaSemana){
     }
     deltas=deltas.slice(-4);
   }
-  var html="<tr style='background:#f5f5f3'><th style='padding:5px 6px;text-align:left;border-bottom:1px solid #ddd'>Hito</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd'>Acumulado</th>";
+  var html="<tr style='background:#f5f5f3'><th style='padding:5px 6px;text-align:left;border-bottom:1px solid #ddd'>Hito</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd;white-space:nowrap'>Real acum.</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd;white-space:nowrap'>Program. acum.</th>";
   deltas.forEach(function(d){
     html+="<th style='padding:5px;text-align:center;border-bottom:1px solid #ddd;font-size:9px;color:#888'>Sem. "+d.fecha+"</th>";
   });
   html+="</tr>";
   hitos.forEach(function(h){
-    html+="<tr style='border-bottom:1px solid #eee'><td style='padding:5px 6px;font-weight:500'>"+h.l+"</td><td style='padding:5px;text-align:center;color:"+h.c+";font-weight:700'>"+live[h.k]+"</td>";
+    var progTxt=(h.prog&&progAcumHoy&&progAcumHoy[h.k]!==undefined)?progAcumHoy[h.k]:"—";
+    var progCellColor=h.prog?"#555":"#bbb";
+    html+="<tr style='border-bottom:1px solid #eee'><td style='padding:5px 6px;font-weight:500'>"+h.l+"</td><td style='padding:5px;text-align:center;color:"+h.c+";font-weight:700'>"+live[h.k]+"</td><td style='padding:5px;text-align:center;color:"+progCellColor+";font-weight:600'>"+progTxt+"</td>";
     deltas.forEach(function(d){
       var v=d[h.k];
       var kp=h.k+"_prog";
@@ -3240,7 +3242,7 @@ function renderHistoricoRS(snapshots,error,metaSemana){
   if(nota){
     if(error) nota.textContent="No se pudo conectar con Google Sheets. El acumulado mostrado es el estado local.";
     else if(!snapshots||snapshots.length===0) nota.textContent="Aún no hay cortes semanales guardados. Aparecerán aquí automáticamente cada semana.";
-    else nota.textContent="\"Acumulado\" refleja el estado actual en vivo. \"Meta\" es lo programado por el equipo para esa semana (R0/R1/RF).";
+    else nota.textContent="\"Real acum.\" es el estado actual en vivo. \"Program. acum.\" es lo que debería llevar según el programa a esta fecha.";
   }
 }
 
