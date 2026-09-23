@@ -2664,6 +2664,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
       </div>
       <button onclick="cerrarHistoricoRS()" style="background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:#888;padding:0 4px">&times;</button>
     </div>
+    <div id="hist-meta"></div>
     <table id="hist-tabla" style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:.5rem"></table>
     <div id="hist-nota" style="font-size:9px;color:#aaa;text-align:center;margin-bottom:.75rem">Los cortes semanales se generan automáticamente. "Acumulado" refleja el estado actual en vivo.</div>
     <button onclick="cerrarHistoricoRS()" style="width:100%;padding:9px;border-radius:8px;border:1px solid #ccc;background:#f5f5f3;font-size:13px;cursor:pointer">Cerrar</button>
@@ -3163,16 +3164,17 @@ function accHitosLiveRS(){
 
 function abrirHistoricoRS(){
   document.getElementById("mr-hist").classList.add("v");
+  document.getElementById("hist-meta").innerHTML="";
   document.getElementById("hist-tabla").innerHTML="<tr><td style='padding:14px;text-align:center;color:#888;font-size:11px'>Cargando…</td></tr>";
   fetch(SCRIPT_URL+"?accion=get_historico_rs&_="+Date.now(),{cache:"no-store"})
     .then(function(r){return r.json();})
     .catch(function(){return null;})
     .then(function(data){
       if(!data||!data.ok){
-        renderHistoricoRS([],true);
+        renderHistoricoRS([],true,null);
         return;
       }
-      renderHistoricoRS(data.snapshots||[],false);
+      renderHistoricoRS(data.snapshots||[],false,data.metaSemana||null);
     });
 }
 
@@ -3180,20 +3182,19 @@ function cerrarHistoricoRS(){
   document.getElementById("mr-hist").classList.remove("v");
 }
 
-function renderHistoricoRS(snapshots,error){
+function renderHistoricoRS(snapshots,error,metaSemana){
   var live=accHitosLiveRS();
-  var hitos=[{k:"sg",l:"Sello gris",c:"#185FA5"},{k:"r0",l:"&ge; R0",c:"#BA7517"},{k:"r1",l:"&ge; R1",c:"#3B6D11"},{k:"rf",l:"RF",c:"#1D9E75"}];
+  var hitos=[{k:"sg",l:"Sello gris",c:"#185FA5",prog:false},{k:"r0",l:"&ge; R0",c:"#BA7517",prog:true},{k:"r1",l:"&ge; R1",c:"#3B6D11",prog:true},{k:"rf",l:"RF",c:"#1D9E75",prog:true}];
   var deltas=[];
   if(snapshots&&snapshots.length>0){
     for(var i=0;i<snapshots.length;i++){
-      var prev=i>0?snapshots[i-1]:{sg:0,r0:0,r1:0,rf:0};
-      deltas.push({
-        fecha:snapshots[i].fecha,
-        sg:snapshots[i].sg-prev.sg,
-        r0:snapshots[i].r0-prev.r0,
-        r1:snapshots[i].r1-prev.r1,
-        rf:snapshots[i].rf-prev.rf
+      var prev=i>0?snapshots[i-1]:{sg:0,r0:0,r1:0,rf:0,r0_prog:0,r1_prog:0,rf_prog:0};
+      var d={fecha:snapshots[i].fecha,sg:snapshots[i].sg-prev.sg,r0:snapshots[i].r0-prev.r0,r1:snapshots[i].r1-prev.r1,rf:snapshots[i].rf-prev.rf};
+      ["r0","r1","rf"].forEach(function(k){
+        var kp=k+"_prog";
+        if(snapshots[i][kp]!==undefined&&prev[kp]!==undefined) d[kp]=snapshots[i][kp]-prev[kp];
       });
+      deltas.push(d);
     }
     deltas=deltas.slice(-4);
   }
@@ -3206,16 +3207,40 @@ function renderHistoricoRS(snapshots,error){
     html+="<tr style='border-bottom:1px solid #eee'><td style='padding:5px 6px;font-weight:500'>"+h.l+"</td><td style='padding:5px;text-align:center;color:"+h.c+";font-weight:700'>"+live[h.k]+"</td>";
     deltas.forEach(function(d){
       var v=d[h.k];
-      html+="<td style='padding:5px;text-align:center;color:"+h.c+"'>"+(v>=0?"+":"")+v+"</td>";
+      var kp=h.k+"_prog";
+      if(h.prog&&d[kp]!==undefined){
+        var meta=d[kp];
+        var ok=v>=meta;
+        html+="<td style='padding:4px;text-align:center;color:"+h.c+";font-size:10px'>"+(v>=0?"+":"")+v+"<div style='font-size:9px;color:"+(ok?"#3B6D11":"#C0392B")+"'>meta "+meta+(ok?" ✓":" ✗")+"</div></td>";
+      } else {
+        html+="<td style='padding:5px;text-align:center;color:"+h.c+"'>"+(v>=0?"+":"")+v+"</td>";
+      }
     });
     html+="</tr>";
   });
   document.getElementById("hist-tabla").innerHTML=html;
+  var metaEl=document.getElementById("hist-meta");
+  if(metaEl){
+    if(metaSemana&&(metaSemana.r0||metaSemana.r1||metaSemana.rf)){
+      var ultimo=snapshots&&snapshots.length?snapshots[snapshots.length-1]:{r0:0,r1:0,rf:0};
+      var partes=[];
+      [["r0","R0"],["r1","R1"],["rf","RF"]].forEach(function(pair){
+        var k=pair[0],lbl=pair[1];
+        var meta=metaSemana[k]||0;
+        if(meta<=0)return;
+        var llevas=live[k]-(ultimo[k]||0);
+        partes.push(lbl+" "+llevas+"/"+meta);
+      });
+      if(partes.length){
+        metaEl.innerHTML="<div style='background:#FFF4E5;border:1px solid #E18426;border-radius:8px;padding:8px 10px;margin-bottom:.5rem;font-size:11px;color:#5a3a00'><b>Meta de esta semana:</b> "+partes.join(" · ")+"</div>";
+      }
+    }
+  }
   var nota=document.getElementById("hist-nota");
   if(nota){
     if(error) nota.textContent="No se pudo conectar con Google Sheets. El acumulado mostrado es el estado local.";
     else if(!snapshots||snapshots.length===0) nota.textContent="Aún no hay cortes semanales guardados. Aparecerán aquí automáticamente cada semana.";
-    else nota.textContent="Los cortes semanales se generan automáticamente. \"Acumulado\" refleja el estado actual en vivo.";
+    else nota.textContent="\"Acumulado\" refleja el estado actual en vivo. \"Meta\" es lo programado por el equipo para esa semana (R0/R1/RF).";
   }
 }
 
