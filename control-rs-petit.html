@@ -2665,6 +2665,15 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
       <button onclick="cerrarHistoricoRS()" style="background:none;border:none;font-size:22px;line-height:1;cursor:pointer;color:#888;padding:0 4px">&times;</button>
     </div>
     <div id="hist-meta"></div>
+    <div style="background:#f5f5f3;border-radius:8px;padding:8px 10px;margin-bottom:.5rem">
+      <div style="font-size:10px;color:#888;margin-bottom:5px">Meta de esta semana (cuántos se espera fichar)</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="number" min="0" id="meta-r0" placeholder="R0" style="width:0;flex:1;padding:6px;border:1px solid #ccc;border-radius:6px;font-size:12px">
+        <input type="number" min="0" id="meta-r1" placeholder="R1" style="width:0;flex:1;padding:6px;border:1px solid #ccc;border-radius:6px;font-size:12px">
+        <input type="number" min="0" id="meta-rf" placeholder="RF" style="width:0;flex:1;padding:6px;border:1px solid #ccc;border-radius:6px;font-size:12px">
+        <button onclick="guardarMetaSemana()" style="padding:6px 10px;border-radius:6px;border:none;background:#1A1846;color:#fff;font-size:11px;cursor:pointer;white-space:nowrap">Guardar meta</button>
+      </div>
+    </div>
     <table id="hist-tabla" style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:.5rem"></table>
     <div id="hist-nota" style="font-size:9px;color:#aaa;text-align:center;margin-bottom:.75rem">Los cortes semanales se generan automáticamente. "Acumulado" refleja el estado actual en vivo.</div>
     <button onclick="cerrarHistoricoRS()" style="width:100%;padding:9px;border-radius:8px;border:1px solid #ccc;background:#f5f5f3;font-size:13px;cursor:pointer">Cerrar</button>
@@ -3175,6 +3184,31 @@ function abrirHistoricoRS(){
         return;
       }
       renderHistoricoRS(data.snapshots||[],false,data.metaSemana||null);
+      var mr0=document.getElementById("meta-r0"),mr1=document.getElementById("meta-r1"),mrf=document.getElementById("meta-rf");
+      if(mr0&&data.metaSemana){
+        mr0.value=data.metaSemana.r0||"";
+        mr1.value=data.metaSemana.r1||"";
+        mrf.value=data.metaSemana.rf||"";
+      }
+    });
+}
+
+function guardarMetaSemana(){
+  if(!admin){showT("Requiere acceso admin");openPin();return;}
+  var r0=Number(document.getElementById("meta-r0").value)||0;
+  var r1=Number(document.getElementById("meta-r1").value)||0;
+  var rf=Number(document.getElementById("meta-rf").value)||0;
+  if(r0<=0&&r1<=0&&rf<=0){showT("Ingresa al menos un valor");return;}
+  fetch(SCRIPT_URL+"?accion=set_programa_rs&r0="+r0+"&r1="+r1+"&rf="+rf+"&_="+Date.now(),{cache:"no-store"})
+    .then(function(r){return r.json();})
+    .catch(function(){return null;})
+    .then(function(data){
+      if(data&&data.ok){
+        showT("Meta guardada");
+        abrirHistoricoRS();
+      } else {
+        showT("No se pudo guardar. Intenta de nuevo.");
+      }
     });
 }
 
