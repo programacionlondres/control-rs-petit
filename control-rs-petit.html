@@ -3339,8 +3339,34 @@ function cerrarTipologia(){document.getElementById("mo-tip").classList.remove("v
 // mientras haya pendientes el botón "Sync" se pinta de otro color
 // para que no pase inadvertido.
 var PEND_KEY="rs_pendientes_push";
-function getPend(){try{return JSON.parse(localStorage.getItem(PEND_KEY)||"[]");}catch(e){return [];}}
-function setPend(arr){localStorage.setItem(PEND_KEY,JSON.stringify(arr));marcarPendUI();}
+// Un lote no confirmado queda protegido de que "Google Sheets manda siempre"
+// lo corrija, pero solo por un rato: si en PEND_MAX_MS no se logró guardar,
+// se deja de proteger y en la siguiente sincronización se corrige con lo
+// que realmente diga la planilla. Sin este vencimiento, un guardado que
+// falla para siempre (por ejemplo por un problema de red persistente)
+// dejaría ese lote mostrando avance falso en pantalla indefinidamente.
+var PEND_MAX_MS=3*60*1000;
+function getPendRaw(){
+  try{
+    var raw=JSON.parse(localStorage.getItem(PEND_KEY)||"[]");
+    return raw.map(function(x){return (typeof x==="string")?{k:x,t:Date.now()}:x;});
+  }catch(e){return [];}
+}
+function getPend(){
+  var raw=getPendRaw();
+  var ahora=Date.now();
+  var vivos=raw.filter(function(x){return (ahora-x.t)<PEND_MAX_MS;});
+  if(vivos.length!==raw.length)localStorage.setItem(PEND_KEY,JSON.stringify(vivos));
+  return vivos.map(function(x){return x.k;});
+}
+function setPend(keys){
+  var porClave={};
+  getPendRaw().forEach(function(x){porClave[x.k]=x.t;});
+  var ahora=Date.now();
+  var nuevo=keys.map(function(k){return {k:k,t:porClave.hasOwnProperty(k)?porClave[k]:ahora};});
+  localStorage.setItem(PEND_KEY,JSON.stringify(nuevo));
+  marcarPendUI();
+}
 function addPend(key){var p=getPend();if(p.indexOf(key)<0){p.push(key);setPend(p);}}
 function removePend(key){var p=getPend();var i=p.indexOf(key);if(i>=0){p.splice(i,1);setPend(p);}}
 function marcarPendUI(){
