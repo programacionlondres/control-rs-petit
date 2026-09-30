@@ -2728,7 +2728,12 @@ function colorFecha(mz, l, hitosAlcanzados) {
 }
 function gH(mz,l){var v=localStorage.getItem("rs_"+mz+"_"+l);return v?JSON.parse(v):[];}
 function sH(mz,l,a){localStorage.setItem("rs_"+mz+"_"+l,JSON.stringify(a));}
-function uH(h){var mx=0,u=null;for(var i=0;i<h.length;i++)if(EN[h[i]]>mx){mx=EN[h[i]];u=h[i];}return u;}
+// Devuelve el hito "más avanzado" de la lista. R0 y R0+Observaciones
+// comparten el mismo nivel (EN=2) a propósito -son la misma etapa-, pero
+// como al marcar "R0+Obs" se guardan ambos ["...,"r0","r0obs"], hay que
+// usar >= (no solo >) para que, en un empate, gane el que se marcó
+// después (r0obs) y no se quede enmascarado detrás de "r0".
+function uH(h){var mx=0,u=null;for(var i=0;i<h.length;i++)if(EN[h[i]]>=mx){mx=EN[h[i]];u=h[i];}return u;}
 function dv(h,f){
   if(f==="todos")return true;
   if(f==="nd")return h.length===0;
