@@ -122,6 +122,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
     <button class="bh" style="background:#E18426;color:#fff;font-weight:600" onclick="abrirInformeSemanal()">Informe</button>
     <button class="bh" style="background:#1A1846;color:#fff;font-weight:600" onclick="abrirHistoricoRS()">📊 Histórico</button>
     <button class="bh" id="btn-sync" style="background:#27AE60;color:#fff;font-weight:600" onclick="sincronizarRS()">⟳ Sync</button>
+    <button class="bh" title="Reenvía a Google Sheets todo el avance guardado en este dispositivo (requiere admin)" onclick="subirTodoLocalRS()">⬆ Reenviar todo</button>
     <button class="bh" style="background:#FF6B6B;color:#fff;font-weight:600" onclick="cerrarDiaRs()">Cerrar dia</button>
     <button class="bh" onclick="capturar()" id="btn-cap">Imagen</button>
   </div>
@@ -2968,24 +2969,14 @@ function guardarBulk(){
     var parts=key.split("-");
     var mz=parts[0],l=Number(parts[1]);
     sH(mz,l,htBulk.slice());
+    addPend(key);
   });
   cerrarBulk();
   selLotes.clear();
   actualizarBarraSel();
   renderRes();renderManzanas();updateSVG();
-  showT("Aplicando a "+n+" lotes...");
-  var bIdx=0,batches=[];
-  for(var i=0;i<claves.length;i+=10)batches.push(claves.slice(i,i+10));
-  function nextBatch(){
-    if(bIdx>=batches.length){showTOk("✓ Estado aplicado a "+n+" lotes");return;}
-    var b=batches[bIdx++];
-    Promise.all(b.map(function(key){
-      var parts=key.split("-");
-      var mz=parts[0],l=Number(parts[1]);
-      return fetch(SCRIPT_URL+"?accion=set_lote_rs&mz="+encodeURIComponent(mz)+"&lote="+encodeURIComponent(l)+"&hitos="+encodeURIComponent(JSON.stringify(htBulk)),{cache:"no-store"}).catch(function(){return null;});
-    })).then(nextBatch);
-  }
-  nextBatch();
+  showT("Guardando "+n+" lotes en Google Sheets...");
+  guardarLotesRS(claves);
 }
 
 function openModal(mz,l){
@@ -3017,7 +3008,8 @@ function tog(e){
 function gh(){
   if(!ca)return;
   sH(ca.mz,ca.l,ht);
-  sincronizarLoteRS(ca.mz,ca.l,ht);
+  addPend(ca.mz+"-"+ca.l);
+  guardarLotesRS([ca.mz+"-"+ca.l],{silencioso:true});
   cm();
   renderRes();
   renderManzanas();
@@ -3104,6 +3096,7 @@ cargarDatosIniciales();
 renderRes();
 renderManzanas();
 updateSVG();
+marcarPendUI();
 inicializarRS();
 (function(){
   document.querySelectorAll(".vivienda[data-numero]").forEach(function(g){
@@ -3340,14 +3333,110 @@ function mostrarTipologia(){
 function cerrarTipologia(){document.getElementById("mo-tip").classList.remove("v");}
 
 // ── Sync multi-dispositivo con Google Sheets ──
-function sincronizarLoteRS(mz,l,hitos){
-  var url=SCRIPT_URL+"?accion=set_lote_rs&mz="+encodeURIComponent(mz)+"&lote="+encodeURIComponent(l)+"&hitos="+encodeURIComponent(JSON.stringify(hitos));
-  fetch(url,{cache:"no-store"})
-    .then(function(r){return r.json();})
-    .then(function(r){
-      if(!r||!r.ok)showT("⚠ No se guardó en Google Sheets (solo quedó local)");
-    })
-    .catch(function(){showT("⚠ Sin conexión con Google Sheets - solo quedó local");});
+// ---- Cola de pendientes de guardado en Google Sheets --------------
+// Si un guardado (individual o por selección múltiple) no se puede
+// confirmar con el servidor, el lote queda marcado aquí. Se reintenta
+// solo cada vez que se sincroniza (botón Sync o al abrir la app), y
+// mientras haya pendientes el botón "Sync" se pinta de otro color
+// para que no pase inadvertido.
+var PEND_KEY="rs_pendientes_push";
+function getPend(){try{return JSON.parse(localStorage.getItem(PEND_KEY)||"[]");}catch(e){return [];}}
+function setPend(arr){localStorage.setItem(PEND_KEY,JSON.stringify(arr));marcarPendUI();}
+function addPend(key){var p=getPend();if(p.indexOf(key)<0){p.push(key);setPend(p);}}
+function removePend(key){var p=getPend();var i=p.indexOf(key);if(i>=0){p.splice(i,1);setPend(p);}}
+function marcarPendUI(){
+  var btn=document.getElementById("btn-sync");
+  if(!btn)return;
+  var n=getPend().length;
+  if(n>0){btn.style.background="#E67E22";btn.title=n+" lote(s) guardados solo en este dispositivo - toca Sync para reintentar el envío a Google Sheets";}
+  else{btn.style.background="#27AE60";btn.title="";}
+}
+
+// Guarda en el servidor la lista de lotes indicada (formato "mz-lote"),
+// tomando en cada caso el estado ACTUAL de ese lote en localStorage.
+// A diferencia del guardado anterior, valida la respuesta real del
+// servidor (no basta con que el fetch no truene), reintenta una vez
+// más si algo falla, y si aun así no se puede confirmar deja el lote
+// en la cola de pendientes en vez de reportar un éxito falso.
+function guardarLotesRS(claves,opts){
+  opts=opts||{};
+  var silencioso=!!opts.silencioso;
+  var total=claves.length;
+  if(total===0)return Promise.resolve();
+
+  function intentarTanda(pendientes){
+    var fallidos=[],batches=[],bIdx=0;
+    for(var i=0;i<pendientes.length;i+=5)batches.push(pendientes.slice(i,i+5));
+    function guardarUno(key){
+      var parts=key.split("-");
+      var mz=parts[0],l=Number(parts[1]);
+      var hitos=gH(mz,l);
+      var ctrl=new AbortController();
+      var timer=setTimeout(function(){ctrl.abort();},15000);
+      var url=SCRIPT_URL+"?accion=set_lote_rs&mz="+encodeURIComponent(mz)+"&lote="+encodeURIComponent(l)+"&hitos="+encodeURIComponent(JSON.stringify(hitos));
+      return fetch(url,{cache:"no-store",signal:ctrl.signal})
+        .then(function(r){return r.json();})
+        .then(function(r){clearTimeout(timer);if(!r||!r.ok)fallidos.push(key);else removePend(key);})
+        .catch(function(){clearTimeout(timer);fallidos.push(key);});
+    }
+    function nextBatch(){
+      if(bIdx>=batches.length)return Promise.resolve(fallidos);
+      var b=batches[bIdx++];
+      return Promise.all(b.map(guardarUno)).then(nextBatch);
+    }
+    return nextBatch();
+  }
+
+  return intentarTanda(claves).then(function(fallidos1){
+    if(fallidos1.length===0){
+      if(!silencioso)showTOk("✓ Guardado en Google Sheets");
+      return;
+    }
+    return new Promise(function(res){setTimeout(res,1500);})
+      .then(function(){return intentarTanda(fallidos1);})
+      .then(function(fallidos2){
+        if(fallidos2.length===0){
+          if(!silencioso)showTOk("✓ Guardado en Google Sheets");
+          return;
+        }
+        fallidos2.forEach(addPend);
+        showTOk("⚠ "+fallidos2.length+" de "+total+" lote(s) no se guardaron en Google Sheets - quedaron marcados para reintentar en el próximo Sync");
+      });
+  });
+}
+
+// Reintenta enviar los lotes que quedaron pendientes de una
+// sincronización anterior (por ejemplo por un corte de conexión al
+// guardar). Se llama automáticamente cada vez que se sincroniza.
+function reintentarPendientesRS(){
+  var p=getPend();
+  if(p.length===0)return Promise.resolve();
+  showT("Reintentando "+p.length+" lote(s) pendientes...");
+  return guardarLotesRS(p,{silencioso:true});
+}
+
+// Herramienta de recuperación (solo admin): reenvía a Google Sheets TODO
+// lo que este navegador tiene guardado en este momento, lote por lote.
+// Sirve para el caso en que un guardado (sobre todo por selección
+// múltiple) haya quedado únicamente en este dispositivo sin que nadie
+// lo notara a tiempo - por ejemplo si se cerró la app antes de que el
+// aviso de "no se guardó" apareciera. No borra ni cambia nada local,
+// solo confirma con el servidor lo que ya está en pantalla.
+function subirTodoLocalRS(){
+  if(!admin){showT("Requiere acceso admin");openPin();return;}
+  var claves=[];
+  for(var i=0;i<MANZANAS.length;i++){
+    var mz=MANZANAS[i];
+    for(var j=0;j<mz.lotes.length;j++){
+      var l=mz.lotes[j];
+      if(gH(mz.id,l).length>0)claves.push(mz.id+"-"+l);
+    }
+  }
+  if(claves.length===0){showT("No hay avances locales para reenviar");return;}
+  if(!confirm("Se reenviarán "+claves.length+" lotes con avance a Google Sheets para confirmar que están guardados. Puede tardar uno o dos minutos. ¿Continuar?"))return;
+  claves.forEach(addPend);
+  showT("Reenviando "+claves.length+" lotes a Google Sheets...");
+  guardarLotesRS(claves);
 }
 
 function showTOk(m){
@@ -3359,24 +3448,67 @@ function showTOk(m){
 function inicializarRS(){
   var btnSync=document.getElementById("btn-sync");
   showT("Sincronizando...");
-  fetch(SCRIPT_URL+"?accion=get_estado_rs&_="+Date.now(),{cache:"no-store"})
-    .then(function(r){return r.json();})
-    .catch(function(){return null;})
-    .then(function(data){
+  reintentarPendientesRS().then(function(){
+    return fetch(SCRIPT_URL+"?accion=get_estado_rs&_="+Date.now(),{cache:"no-store"})
+      .then(function(r){return r.json();})
+      .catch(function(){return null;});
+  }).then(function(data){
       if(!data||!data.ok){
         if(btnSync)btnSync.textContent="⟳ Sync";
+        marcarPendUI();
         showT("Sin conexión - datos locales");return;
       }
-      // Google Sheets manda siempre: se pisa la caché local de este navegador con lo
-      // que diga el servidor. Nunca se sube de vuelta lo que ya estaba guardado antes
-      // en localStorage (eso era lo que revivía avances viejos después de un reinicio).
+      // Google Sheets manda siempre para los lotes que están al día: se pisa la
+      // caché local de este navegador con lo que diga el servidor. Los lotes que
+      // quedaron pendientes de guardar (arriba, reintentarPendientesRS) no se pisan
+      // aquí aunque el servidor traiga un valor distinto, porque ese valor del
+      // servidor todavía no incluye el cambio que este dispositivo no ha logrado
+      // confirmar - si se pisara se perdería silenciosamente ese avance.
+      var pend=getPend();
+      var remotoPorLote={};
       for(var i=0;i<data.datos.length;i++){
         var d=data.datos[i];
+        var key=d.mz+"-"+d.lote;
+        remotoPorLote[key]=d.hitos||[];
+        if(pend.indexOf(key)>=0)continue;
         localStorage.setItem("rs_"+d.mz+"_"+d.lote,JSON.stringify(d.hitos||[]));
       }
-      renderRes();renderManzanas();updateSVG();
-      if(btnSync)btnSync.textContent="⟳ Sync";
-      showTOk("✓ Sincronizado con Google Sheets");
+
+      // Recuperación automática: si este navegador tiene, para algún lote, un
+      // avance que el servidor no tiene o que está más atrasado que el local
+      // (típicamente porque un guardado anterior falló sin que nadie lo notara,
+      // por ejemplo al aplicar a varios lotes con selección múltiple), lo
+      // reenvía solo, sin que la persona que está usando la app tenga que
+      // hacer nada especial. No pisa el caso contrario (servidor más
+      // adelantado que el local), ese ya quedó resuelto arriba.
+      var aRecuperar=[];
+      for(var mi=0;mi<MANZANAS.length;mi++){
+        var mz=MANZANAS[mi];
+        for(var li=0;li<mz.lotes.length;li++){
+          var l=mz.lotes[li],key2=mz.id+"-"+l;
+          var localH=gH(mz.id,l);
+          if(localH.length===0)continue;
+          var remH=remotoPorLote.hasOwnProperty(key2)?remotoPorLote[key2]:[];
+          if(JSON.stringify(localH)===JSON.stringify(remH))continue;
+          var nivelLocal=EN[uH(localH)]||0,nivelRemoto=EN[uH(remH)]||0;
+          if(nivelLocal>=nivelRemoto)aRecuperar.push(key2);
+        }
+      }
+      var trabajo=Promise.resolve();
+      if(aRecuperar.length>0){
+        aRecuperar.forEach(addPend);
+        trabajo=guardarLotesRS(aRecuperar,{silencioso:true});
+      }
+      trabajo.then(function(){
+        renderRes();renderManzanas();updateSVG();
+        if(btnSync)btnSync.textContent="⟳ Sync";
+        marcarPendUI();
+        if(aRecuperar.length>0 && getPend().length===0){
+          showTOk("✓ Sincronizado (se recuperaron "+aRecuperar.length+" lote(s) que no estaban guardados en Sheets)");
+        }else{
+          showTOk("✓ Sincronizado con Google Sheets");
+        }
+      });
     });
 }
 
@@ -3393,8 +3525,10 @@ setInterval(function(){
     .then(function(data){
       if(!data||!data.ok)return;
       var cambios=0;
+      var pend=getPend();
       for(var i=0;i<data.datos.length;i++){
         var d=data.datos[i];
+        if(pend.indexOf(d.mz+"-"+d.lote)>=0)continue; // no pisar un cambio local aún sin confirmar
         var localH=gH(d.mz,d.lote);
         var remotoH=d.hitos||[];
         if(JSON.stringify(remotoH)!==JSON.stringify(localH)){
