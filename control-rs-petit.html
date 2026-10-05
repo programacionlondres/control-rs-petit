@@ -41,6 +41,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .c.sg{background:#90C8FF;border-color:#1a5fa8;color:#003580}
 .c.r0{background:#90EE90;border-color:#2e8b2e;color:#1a4a1a}
 .c.r0obs{background:#FFD700;border-color:#B8860B;color:#5a3a00;position:relative}
+.c.fr1{background:#4DD0C4;border-color:#12857C;color:#064a45}
 .c.r1{background:#228B22;border-color:#145214;color:#fff}
 .c.rf{background:#006400;border-color:#003200;color:#fff;font-size:11px}
 .c.oculta{opacity:.08;pointer-events:none}
@@ -58,11 +59,13 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .hr{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1.5px solid #e0e0db;background:#f9f9f7;cursor:pointer}
 .hr.al.sg-h{border-color:#1a5fa8;background:#E6F1FB}
 .hr.al.r0-h{border-color:#b07000;background:#FAEEDA}
+.hr.al.fr1-h{border-color:#12857C;background:#E0F7F5}
 .hr.al.r1-h{border-color:#2a7000;background:#EAF3DE}
 .hr.al.rf-h{border-color:#0a5035;background:#E1F5EE}
 .hc{width:20px;height:20px;border-radius:50%;border:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
 .hc.m.sg-c{background:#1a5fa8;border-color:#1a5fa8;color:#fff}
 .hc.m.r0-c{background:#b07000;border-color:#b07000;color:#fff}
+.hc.m.fr1-c{background:#12857C;border-color:#12857C;color:#fff}
 .hc.m.r1-c{background:#2a7000;border-color:#2a7000;color:#fff}
 .hc.m.rf-c{background:#0F8C55;border-color:#0a5035;color:#fff}
 .hl{font-size:13px;font-weight:500;flex:1}
@@ -135,6 +138,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
   <button class="fb" id="f-sg" onclick="filtrar('sg')">&ge; Sello gris</button>
   <button class="fb" id="f-r0" onclick="filtrar('r0')">&ge; R0</button>
   <button class="fb" id="f-r0obs" onclick="filtrar('r0obs')">&ge; R0+Obs</button>
+  <button class="fb" id="f-fr1" onclick="filtrar('fr1')">&ge; Fichaje R1</button>
   <button class="fb" id="f-r1" onclick="filtrar('r1')">&ge; R1</button>
   <button class="fb" id="f-rf" onclick="filtrar('rf')">RF</button>
   <button class="fb" id="f-nd" onclick="filtrar('nd')">Sin inicio</button>
@@ -145,6 +149,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
   <div class="li"><div class="lc" style="background:#90C8FF;border-color:#1a5fa8"></div>Sello gris</div>
   <div class="li"><div class="lc" style="background:#90EE90;border-color:#2e8b2e"></div>R0</div>
   <div class="li"><div class="lc" style="background:#FFD700;border-color:#B8860B"></div>R0 + Obs</div>
+  <div class="li"><div class="lc" style="background:#4DD0C4;border-color:#12857C"></div>Fichaje R1</div>
   <div class="li"><div class="lc" style="background:#228B22;border-color:#145214"></div>R1</div>
   <div class="li"><div class="lc" style="background:#006400;border-color:#003200"></div>RF ✓</div>
   <div class="li"><div class="lc" style="background:#FF6B6B;border-color:#CC0000"></div>Atrasado</div>
@@ -166,6 +171,7 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .vivienda.lot-sg .dwelling-shape { fill: #90C8FF; stroke: #1a5fa8; stroke-width: 2; }
 .vivienda.lot-r0 .dwelling-shape { fill: #90EE90; stroke: #2e8b2e; stroke-width: 2; }
 .vivienda.lot-r0obs .dwelling-shape { fill: #FFD700; stroke: #B8860B; stroke-width: 2.5; }
+.vivienda.lot-fr1 .dwelling-shape { fill: #4DD0C4; stroke: #12857C; stroke-width: 2; }
 .vivienda.lot-r1 .dwelling-shape { fill: #228B22; stroke: #145214; stroke-width: 2; }
 .vivienda.lot-rf .dwelling-shape { fill: #006400; stroke: #003200; stroke-width: 2; }
 .vivienda.lot-atrasado .dwelling-shape { fill: #FF6B6B; stroke: #CC0000; stroke-width: 2; }
@@ -2689,9 +2695,9 @@ var SCRIPT_URL="https://script.google.com/macros/s/AKfycbwZr2aE9Mv7As6gPi0mzoEqM
 var PIN="0525",admin=false,fa="todos",ca=null,ht=[],pc=null,modTip=false;
 var htBulk=[];
 var selLotes=new Set();
-var ET=["sg","r0","r0obs","r1","rf"];
-var EN={sg:1,r0:2,r0obs:2,r1:3,rf:4};
-var EL={sg:"Sello gris",r0:"R0",r0obs:"R0 + Observaciones",r1:"R1",rf:"RF"};
+var ET=["sg","r0","r0obs","fr1","r1","rf"];
+var EN={sg:1,r0:2,r0obs:2,fr1:3,r1:4,rf:5};
+var EL={sg:"Sello gris",r0:"R0",r0obs:"R0 + Observaciones",fr1:"Fichaje R1",r1:"R1",rf:"RF"};
 var FECHAS_R0 = {};  // Sin fechas programadas aún
 
 var TIPOLOGIAS={
@@ -2715,7 +2721,7 @@ function colorFecha(mz, l, hitosAlcanzados) {
   var fecha = FECHAS_R0[key];
   var u = uH(hitosAlcanzados);
   // Si ya tiene R0 o superior, usar color normal de hito
-  if (u && (u === "r0" || u === "r0obs" || u === "r1" || u === "rf")) return null; // usar color hito
+  if (u && (u === "r0" || u === "r0obs" || u === "fr1" || u === "r1" || u === "rf")) return null; // usar color hito
   if (!fecha) return null; // sin fecha, color normal
   var hoy = new Date();
   hoy.setHours(0,0,0,0);
@@ -2733,6 +2739,7 @@ function sH(mz,l,a){localStorage.setItem("rs_"+mz+"_"+l,JSON.stringify(a));}
 // como al marcar "R0+Obs" se guardan ambos ["...,"r0","r0obs"], hay que
 // usar >= (no solo >) para que, en un empate, gane el que se marcó
 // después (r0obs) y no se quede enmascarado detrás de "r0".
+function bk(u){return (u==="r0obs"||u==="fr1")?"r0":u;}
 function uH(h){var mx=0,u=null;for(var i=0;i<h.length;i++)if(EN[h[i]]>=mx){mx=EN[h[i]];u=h[i];}return u;}
 function dv(h,f){
   if(f==="todos")return true;
@@ -2767,7 +2774,7 @@ function updateSVG(){
       var svgEl=document.getElementById("vivienda-"+mz.id+"-"+num);
       if(svgEl){
         // Remove all lot state classes
-        svgEl.classList.remove("lot-sg","lot-r0","lot-r0obs","lot-r1","lot-rf","lot-atrasado","lot-esta-semana","lot-tip-sm1","lot-tip-sm2","lot-tip-vul","lot-tip-emer","lot-tip-mov");
+        svgEl.classList.remove("lot-sg","lot-r0","lot-r0obs","lot-fr1","lot-r1","lot-rf","lot-atrasado","lot-esta-semana","lot-tip-sm1","lot-tip-sm2","lot-tip-vul","lot-tip-emer","lot-tip-mov");
         if(modTip){
           var tipo=(TIPOLOGIAS[mz.id]&&TIPOLOGIAS[mz.id][l])||'sm1';
           svgEl.classList.add("lot-tip-"+tipo);
@@ -2789,7 +2796,7 @@ function renderManzanas(){
   for(var i=0;i<MANZANAS.length;i++){
     var mz=MANZANAS[i];
     var sg=0,r0=0,r1=0,rf=0;
-    for(var j=0;j<mz.lotes.length;j++){var u=uH(gH(mz.id,mz.lotes[j]));if(u==="sg")sg++;else if(u==="r0")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;}
+    for(var j=0;j<mz.lotes.length;j++){var u=bk(uH(gH(mz.id,mz.lotes[j])));if(u==="sg")sg++;else if(u==="r0")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;}
     var tot=mz.lotes.length,acRF=rf;
     var blq=document.createElement("div");blq.className="mz-bloque";
     var selAllBtn=admin?"<button class='mz-selall' id='selall-"+mz.id+"' onclick=\"toggleSelManzana('"+mz.id+"')\">Seleccionar todo</button>":"";
@@ -2861,7 +2868,7 @@ function r0Programadas(){
 function renderRes(){
   var tot=0,sg=0,r0=0,r1=0,rf=0;
   for(var i=0;i<MANZANAS.length;i++)for(var j=0;j<MANZANAS[i].lotes.length;j++){
-    tot++;var u=uH(gH(MANZANAS[i].id,MANZANAS[i].lotes[j]));
+    tot++;var u=bk(uH(gH(MANZANAS[i].id,MANZANAS[i].lotes[j])));
     if(u==="sg")sg++;else if(u==="r0")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;
   }
   var acSG=sg+r0+r1+rf,acR0=r0+r1+rf,acR1=r1+rf,pct=Math.round(rf/tot*100);
@@ -2959,7 +2966,7 @@ function rHitosBulk(){
 
 function togBulk(e){
   if(htBulk.indexOf(e)>=0){htBulk=htBulk.filter(function(h){return EN[h]<EN[e];});}
-  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(htBulk.indexOf(ET[j])<0)htBulk.push(ET[j]);}
+  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(htBulk.indexOf(ET[j])<0&&(ET[j]!=="r0obs"||e==="r0obs"))htBulk.push(ET[j]);}
   rHitosBulk();
 }
 
@@ -3005,7 +3012,7 @@ function rHitos(){
 
 function tog(e){
   if(ht.indexOf(e)>=0){ht=ht.filter(function(h){return EN[h]<EN[e];});}
-  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(ht.indexOf(ET[j])<0)ht.push(ET[j]);}
+  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(ht.indexOf(ET[j])<0&&(ET[j]!=="r0obs"||e==="r0obs"))ht.push(ET[j]);}
   rHitos();
 }
 
@@ -3120,7 +3127,7 @@ function abrirInformeSemanal(){
   var html="<tr style='background:#f5f5f3'><th style='padding:5px 6px;text-align:left;border-bottom:1px solid #ddd'>Manzana</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd'>Total</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd;color:#185FA5'>&ge;SG</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd;color:#BA7517'>&ge;R0</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd;color:#3B6D11'>&ge;R1</th><th style='padding:5px;text-align:center;border-bottom:1px solid #ddd;color:#1D9E75'>RF</th></tr>";
   for(var i=0;i<MANZANAS.length;i++){
     var mz=MANZANAS[i],sg=0,r0=0,r1=0,rf=0;
-    for(var j=0;j<mz.lotes.length;j++){var u=uH(gH(mz.id,mz.lotes[j]));if(u==="sg")sg++;else if(u==="r0"||u==="r0obs")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;}
+    for(var j=0;j<mz.lotes.length;j++){var u=bk(uH(gH(mz.id,mz.lotes[j])));if(u==="sg")sg++;else if(u==="r0"||u==="r0obs")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;}
     var tot=mz.lotes.length,acSG=sg+r0+r1+rf,acR0=r0+r1+rf,acR1=r1+rf;
     tot_g+=tot;sg_g+=acSG;r0_g+=acR0;r1_g+=acR1;rf_g+=rf;
     html+="<tr style='border-bottom:1px solid #eee'><td style='padding:5px 6px;font-weight:500'>"+mz.nombre+"</td><td style='padding:5px;text-align:center'>"+tot+"</td><td style='padding:5px;text-align:center;color:#185FA5'>"+acSG+"</td><td style='padding:5px;text-align:center;color:#BA7517'>"+acR0+"</td><td style='padding:5px;text-align:center;color:#3B6D11'>"+acR1+"</td><td style='padding:5px;text-align:center;color:#1D9E75;font-weight:600'>"+rf+"</td></tr>";
@@ -3153,7 +3160,7 @@ function cerrarInforme(){
 function accHitosLiveRS(){
   var sg=0,r0=0,r1=0,rf=0;
   for(var i=0;i<MANZANAS.length;i++)for(var j=0;j<MANZANAS[i].lotes.length;j++){
-    var u=uH(gH(MANZANAS[i].id,MANZANAS[i].lotes[j]));
+    var u=bk(uH(gH(MANZANAS[i].id,MANZANAS[i].lotes[j])));
     if(u==="sg")sg++;else if(u==="r0"||u==="r0obs")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;
   }
   return {sg:sg+r0+r1+rf,r0:r0+r1+rf,r1:r1+rf,rf:rf};
@@ -3267,7 +3274,7 @@ function cerrarDiaRs(){
   for(var i=0;i<MANZANAS.length;i++){
     var mz=MANZANAS[i],sg=0,r0=0,r1=0,rf=0;
     for(var j=0;j<mz.lotes.length;j++){
-      var u=uH(gH(mz.id,mz.lotes[j]));
+      var u=bk(uH(gH(mz.id,mz.lotes[j])));
       if(u==="sg")sg++;
       else if(u==="r0"||u==="r0obs")r0++;
       else if(u==="r1")r1++;
@@ -3295,7 +3302,7 @@ function tipCnt(){
       var tip=(TIPOLOGIAS[mz.id]&&TIPOLOGIAS[mz.id][l])||"sm1";
       if(!cnt[tip])continue;
       tot[tip]++;
-      var u=uH(gH(mz.id,l));
+      var u=bk(uH(gH(mz.id,l)));
       if(!u){cnt[tip].nd++;}
       else if(u==="sg"){cnt[tip].sg++;}
       else if(u==="r0"||u==="r0obs"){cnt[tip].sg++;cnt[tip].r0++;}
