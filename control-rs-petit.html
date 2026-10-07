@@ -40,12 +40,12 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .c:hover{transform:scale(1.15);z-index:2;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.15)}
 .c.sg{background:#90C8FF;border-color:#1a5fa8;color:#003580}
 .c.r0{background:#90EE90;border-color:#2e8b2e;color:#1a4a1a}
-.c.r0obs{background:#FFD700;border-color:#B8860B;color:#5a3a00;position:relative}
+.c.sog{background:#D5DCE4;border-color:#5F7185;color:#2c3a4a}
 .c.fr1{background:#4DD0C4;border-color:#12857C;color:#064a45}
 .c.r1{background:#228B22;border-color:#145214;color:#fff}
+.c.frf{background:#1FA896;border-color:#0B6B60;color:#fff}
 .c.rf{background:#006400;border-color:#003200;color:#fff;font-size:11px}
 .c.oculta{opacity:.08;pointer-events:none}
-.c.r0obs::after{content:"!";position:absolute;top:-4px;right:-4px;background:#FF6B00;color:#fff;border-radius:50%;width:12px;height:12px;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
 .c.atrasado{background:#FF6B6B;border-color:#CC0000;color:#fff}
 .c.esta-semana{background:#FF8C00;border-color:#CC5500;color:#fff}
 .mo{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:100}
@@ -57,16 +57,20 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .mds{font-size:11px;color:#888;margin-bottom:1rem}
 .hs{display:flex;flex-direction:column;gap:6px}
 .hr{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1.5px solid #e0e0db;background:#f9f9f7;cursor:pointer}
+.hr.al.sog-h{border-color:#5F7185;background:#EDF0F4}
 .hr.al.sg-h{border-color:#1a5fa8;background:#E6F1FB}
 .hr.al.r0-h{border-color:#b07000;background:#FAEEDA}
 .hr.al.fr1-h{border-color:#12857C;background:#E0F7F5}
 .hr.al.r1-h{border-color:#2a7000;background:#EAF3DE}
+.hr.al.frf-h{border-color:#0B6B60;background:#DDF3F0}
 .hr.al.rf-h{border-color:#0a5035;background:#E1F5EE}
 .hc{width:20px;height:20px;border-radius:50%;border:1.5px solid #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.hc.m.sog-c{background:#5F7185;border-color:#5F7185;color:#fff}
 .hc.m.sg-c{background:#1a5fa8;border-color:#1a5fa8;color:#fff}
 .hc.m.r0-c{background:#b07000;border-color:#b07000;color:#fff}
 .hc.m.fr1-c{background:#12857C;border-color:#12857C;color:#fff}
 .hc.m.r1-c{background:#2a7000;border-color:#2a7000;color:#fff}
+.hc.m.frf-c{background:#0B6B60;border-color:#0B6B60;color:#fff}
 .hc.m.rf-c{background:#0F8C55;border-color:#0a5035;color:#fff}
 .hl{font-size:13px;font-weight:500;flex:1}
 .mbb{display:flex;gap:8px;margin-top:1rem}
@@ -135,22 +139,24 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 <div class="filtros">
   <span>Ver:</span>
   <button class="fb on" id="f-todos" onclick="filtrar('todos')">Todos</button>
+  <button class="fb" id="f-sog" onclick="filtrar('sog')">&ge; Sello obra gruesa</button>
   <button class="fb" id="f-sg" onclick="filtrar('sg')">&ge; Sello gris</button>
   <button class="fb" id="f-r0" onclick="filtrar('r0')">&ge; R0</button>
-  <button class="fb" id="f-r0obs" onclick="filtrar('r0obs')">&ge; R0+Obs</button>
   <button class="fb" id="f-fr1" onclick="filtrar('fr1')">&ge; Fichaje R1</button>
   <button class="fb" id="f-r1" onclick="filtrar('r1')">&ge; R1</button>
+  <button class="fb" id="f-frf" onclick="filtrar('frf')">&ge; Fichaje RF</button>
   <button class="fb" id="f-rf" onclick="filtrar('rf')">RF</button>
   <button class="fb" id="f-nd" onclick="filtrar('nd')">Sin inicio</button>
   <button class="fb" style="background:#1A1846;color:#fff;border-color:#1A1846;margin-left:4px" onclick="toggleModoTip()">&#9638; Tipología</button>
 </div>
 <div class="ley" id="ley">
   <div class="li"><div class="lc" style="background:#f8f8f5;border-color:#ccc"></div>Sin inicio</div>
+  <div class="li"><div class="lc" style="background:#D5DCE4;border-color:#5F7185"></div>Sello obra gruesa</div>
   <div class="li"><div class="lc" style="background:#90C8FF;border-color:#1a5fa8"></div>Sello gris</div>
   <div class="li"><div class="lc" style="background:#90EE90;border-color:#2e8b2e"></div>R0</div>
-  <div class="li"><div class="lc" style="background:#FFD700;border-color:#B8860B"></div>R0 + Obs</div>
   <div class="li"><div class="lc" style="background:#4DD0C4;border-color:#12857C"></div>Fichaje R1</div>
   <div class="li"><div class="lc" style="background:#228B22;border-color:#145214"></div>R1</div>
+  <div class="li"><div class="lc" style="background:#1FA896;border-color:#0B6B60"></div>Fichaje RF</div>
   <div class="li"><div class="lc" style="background:#006400;border-color:#003200"></div>RF ✓</div>
   <div class="li"><div class="lc" style="background:#FF6B6B;border-color:#CC0000"></div>Atrasado</div>
   <div class="li"><div class="lc" style="background:#FF8C00;border-color:#CC5500"></div>Esta semana</div>
@@ -168,11 +174,12 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 <defs>
 <style>.base-line{fill:none;stroke:#8a8a8a;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}.green-area{fill:#b8dfb0;stroke:#4f7f48;stroke-width:1.2;vector-effect:non-scaling-stroke}.dwelling-shape{fill:#fff;stroke:#151515;stroke-width:1.2;stroke-linejoin:round;vector-effect:non-scaling-stroke}.dwelling-number{font-family:DejaVu Sans,Arial,sans-serif;font-size:9px;font-weight:700;fill:#111;text-anchor:middle;dominant-baseline:central;pointer-events:none}.street{font-family:DejaVu Sans,Arial,sans-serif;font-size:15px;font-weight:600;letter-spacing:.4px;fill:#222;text-anchor:middle}.manzana-circle{fill:#fff;stroke:#555;stroke-width:1.2;vector-effect:non-scaling-stroke}.manzana-text{font-family:DejaVu Sans,Arial,sans-serif;font-size:20px;font-weight:700;fill:#333;text-anchor:middle;dominant-baseline:central}.area-label{font-family:DejaVu Sans,Arial,sans-serif;font-size:13px;font-weight:600;fill:#315b2d;text-anchor:middle}
 /* State colors via parent g class */
+.vivienda.lot-sog .dwelling-shape { fill: #D5DCE4; stroke: #5F7185; stroke-width: 2; }
 .vivienda.lot-sg .dwelling-shape { fill: #90C8FF; stroke: #1a5fa8; stroke-width: 2; }
 .vivienda.lot-r0 .dwelling-shape { fill: #90EE90; stroke: #2e8b2e; stroke-width: 2; }
-.vivienda.lot-r0obs .dwelling-shape { fill: #FFD700; stroke: #B8860B; stroke-width: 2.5; }
 .vivienda.lot-fr1 .dwelling-shape { fill: #4DD0C4; stroke: #12857C; stroke-width: 2; }
 .vivienda.lot-r1 .dwelling-shape { fill: #228B22; stroke: #145214; stroke-width: 2; }
+.vivienda.lot-frf .dwelling-shape { fill: #1FA896; stroke: #0B6B60; stroke-width: 2; }
 .vivienda.lot-rf .dwelling-shape { fill: #006400; stroke: #003200; stroke-width: 2; }
 .vivienda.lot-atrasado .dwelling-shape { fill: #FF6B6B; stroke: #CC0000; stroke-width: 2; }
 .vivienda.lot-esta-semana .dwelling-shape { fill: #FF8C00; stroke: #CC5500; stroke-width: 2; }
@@ -2695,9 +2702,9 @@ var SCRIPT_URL="https://script.google.com/macros/s/AKfycbwZr2aE9Mv7As6gPi0mzoEqM
 var PIN="0525",admin=false,fa="todos",ca=null,ht=[],pc=null,modTip=false;
 var htBulk=[];
 var selLotes=new Set();
-var ET=["sg","r0","r0obs","fr1","r1","rf"];
-var EN={sg:1,r0:2,r0obs:2,fr1:3,r1:4,rf:5};
-var EL={sg:"Sello gris",r0:"R0",r0obs:"R0 + Observaciones",fr1:"Fichaje R1",r1:"R1",rf:"RF"};
+var ET=["sog","sg","r0","fr1","r1","frf","rf"];
+var EN={sog:1,sg:2,r0:3,r0obs:3,fr1:4,r1:5,frf:6,rf:7};  // r0obs: solo lectura de datos antiguos (se convierte en r0)
+var EL={sog:"Sello de obra gruesa",sg:"Sello gris",r0:"R0",fr1:"Fichaje R1",r1:"R1",frf:"Fichaje RF",rf:"RF"};
 var FECHAS_R0 = {};  // Sin fechas programadas aún
 
 var TIPOLOGIAS={
@@ -2721,7 +2728,7 @@ function colorFecha(mz, l, hitosAlcanzados) {
   var fecha = FECHAS_R0[key];
   var u = uH(hitosAlcanzados);
   // Si ya tiene R0 o superior, usar color normal de hito
-  if (u && (u === "r0" || u === "r0obs" || u === "fr1" || u === "r1" || u === "rf")) return null; // usar color hito
+  if (u && EN[u] >= EN.r0) return null; // usar color hito
   if (!fecha) return null; // sin fecha, color normal
   var hoy = new Date();
   hoy.setHours(0,0,0,0);
@@ -2732,14 +2739,16 @@ function colorFecha(mz, l, hitosAlcanzados) {
   if (diff <= 7) return "esta-semana";  // programado esta semana
   return null; // aún no corresponde
 }
-function gH(mz,l){var v=localStorage.getItem("rs_"+mz+"_"+l);return v?JSON.parse(v):[];}
+function normH(a){ // "r0obs" ya no existe: los datos antiguos pasan a R0
+  var o=[];for(var i=0;i<a.length;i++){var e=a[i]==="r0obs"?"r0":a[i];if(EN[e]&&o.indexOf(e)<0)o.push(e);}
+  return o;
+}
+function gH(mz,l){var v=localStorage.getItem("rs_"+mz+"_"+l);if(!v)return [];try{return normH(JSON.parse(v));}catch(e){return [];}}
 function sH(mz,l,a){localStorage.setItem("rs_"+mz+"_"+l,JSON.stringify(a));}
-// Devuelve el hito "más avanzado" de la lista. R0 y R0+Observaciones
-// comparten el mismo nivel (EN=2) a propósito -son la misma etapa-, pero
-// como al marcar "R0+Obs" se guardan ambos ["...,"r0","r0obs"], hay que
-// usar >= (no solo >) para que, en un empate, gane el que se marcó
-// después (r0obs) y no se quede enmascarado detrás de "r0".
-function bk(u){return (u==="r0obs"||u==="fr1")?"r0":u;}
+// Devuelve el hito "más avanzado" de la lista (cada hito tiene un nivel propio).
+// Para los contadores: Fichaje R1 cuenta como R0 alcanzado; Fichaje RF como R1 alcanzado;
+// Sello de obra gruesa aun no alcanza Sello gris.
+function bk(u){return (u==="r0obs"||u==="fr1")?"r0":(u==="frf"?"r1":u);}
 function uH(h){var mx=0,u=null;for(var i=0;i<h.length;i++)if(EN[h[i]]>=mx){mx=EN[h[i]];u=h[i];}return u;}
 function dv(h,f){
   if(f==="todos")return true;
@@ -2774,7 +2783,7 @@ function updateSVG(){
       var svgEl=document.getElementById("vivienda-"+mz.id+"-"+num);
       if(svgEl){
         // Remove all lot state classes
-        svgEl.classList.remove("lot-sg","lot-r0","lot-r0obs","lot-fr1","lot-r1","lot-rf","lot-atrasado","lot-esta-semana","lot-tip-sm1","lot-tip-sm2","lot-tip-vul","lot-tip-emer","lot-tip-mov");
+        svgEl.classList.remove("lot-sog","lot-sg","lot-r0","lot-r0obs","lot-fr1","lot-r1","lot-frf","lot-rf","lot-atrasado","lot-esta-semana","lot-tip-sm1","lot-tip-sm2","lot-tip-vul","lot-tip-emer","lot-tip-mov");
         if(modTip){
           var tipo=(TIPOLOGIAS[mz.id]&&TIPOLOGIAS[mz.id][l])||'sm1';
           svgEl.classList.add("lot-tip-"+tipo);
@@ -2966,7 +2975,7 @@ function rHitosBulk(){
 
 function togBulk(e){
   if(htBulk.indexOf(e)>=0){htBulk=htBulk.filter(function(h){return EN[h]<EN[e];});}
-  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(htBulk.indexOf(ET[j])<0&&(ET[j]!=="r0obs"||e==="r0obs"))htBulk.push(ET[j]);}
+  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(htBulk.indexOf(ET[j])<0)htBulk.push(ET[j]);}
   rHitosBulk();
 }
 
@@ -3012,7 +3021,7 @@ function rHitos(){
 
 function tog(e){
   if(ht.indexOf(e)>=0){ht=ht.filter(function(h){return EN[h]<EN[e];});}
-  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(ht.indexOf(ET[j])<0&&(ET[j]!=="r0obs"||e==="r0obs"))ht.push(ET[j]);}
+  else{var i=ET.indexOf(e);for(var j=0;j<=i;j++)if(ht.indexOf(ET[j])<0)ht.push(ET[j]);}
   rHitos();
 }
 
@@ -3487,7 +3496,7 @@ function inicializarRS(){
         var key=d.mz+"-"+d.lote;
         remotoPorLote[key]=d.hitos||[];
         if(pend.indexOf(key)>=0)continue;
-        localStorage.setItem("rs_"+d.mz+"_"+d.lote,JSON.stringify(d.hitos||[]));
+        localStorage.setItem("rs_"+d.mz+"_"+d.lote,JSON.stringify(normH(d.hitos||[])));
       }
       for(var mi=0;mi<MANZANAS.length;mi++){
         var mz=MANZANAS[mi];
@@ -3526,7 +3535,7 @@ setInterval(function(){
         remotoPorLote[key]=d.hitos||[];
         if(pend.indexOf(key)>=0)continue; // no pisar un cambio local aún sin confirmar
         var localH=gH(d.mz,d.lote);
-        var remotoH=d.hitos||[];
+        var remotoH=normH(d.hitos||[]);
         if(JSON.stringify(remotoH)!==JSON.stringify(localH)){
           localStorage.setItem("rs_"+d.mz+"_"+d.lote,JSON.stringify(remotoH));
           cambios++;
