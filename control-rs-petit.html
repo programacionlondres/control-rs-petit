@@ -12,7 +12,8 @@ body{font-family:-apple-system,sans-serif;background:#f0f0ec;color:#1a1a1a}
 .header{background:#1A1846;border-bottom:none;padding:.6rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;position:sticky;top:0;z-index:20}
 .titulo{font-size:14px;font-weight:600;color:#fff}
 .subtitulo{font-size:11px;color:#90C8FF}
-.resumen{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:.6rem 1rem}
+.resumen{display:grid;grid-template-columns:repeat(8,1fr);gap:5px;padding:.6rem 1rem}
+@media(max-width:760px){.resumen{grid-template-columns:repeat(4,1fr)}}
 .cs{background:#fff;border-radius:7px;border:1px solid #e0e0db;padding:.4rem .3rem;text-align:center}
 .cs .num{font-size:18px;font-weight:600}
 .cs .lbl{font-size:9px;color:#888;margin-top:1px}
@@ -2875,19 +2876,25 @@ function r0Programadas(){
   return cnt;
 }
 function renderRes(){
-  var tot=0,sg=0,r0=0,r1=0,rf=0;
+  // Resumen con los 7 hitos oficiales; cada tarjeta cuenta las viviendas que
+  // alcanzaron ese hito o uno posterior (RF = terminadas).
+  var tot=0,ac={sog:0,sg:0,r0:0,fr1:0,r1:0,frf:0,rf:0};
   for(var i=0;i<MANZANAS.length;i++)for(var j=0;j<MANZANAS[i].lotes.length;j++){
-    tot++;var u=bk(uH(gH(MANZANAS[i].id,MANZANAS[i].lotes[j])));
-    if(u==="sg")sg++;else if(u==="r0")r0++;else if(u==="r1")r1++;else if(u==="rf")rf++;
+    tot++;var u=uH(gH(MANZANAS[i].id,MANZANAS[i].lotes[j]));
+    if(u){for(var k=0;k<ET.length;k++)if(EN[ET[k]]<=EN[u])ac[ET[k]]++;}
   }
-  var acSG=sg+r0+r1+rf,acR0=r0+r1+rf,acR1=r1+rf,pct=Math.round(rf/tot*100);
+  var rf=ac.rf,pct=Math.round(rf/tot*100);
   var r0prog=r0Programadas();
+  function card(n,lbl,col,extra){return "<div class='cs'><div class='num' style='color:"+col+(extra?";font-size:13px":"")+"'>"+n+"</div><div class='lbl'>"+lbl+"</div></div>";}
   document.getElementById("res").innerHTML=
     "<div class='cs'><div class='num'>"+tot+"</div><div class='lbl'>Total</div></div>"+
-    "<div class='cs'><div class='num' style='color:#185FA5'>"+acSG+"</div><div class='lbl'>&ge; SG</div></div>"+
-    "<div class='cs'><div class='num' style='color:#BA7517;font-size:13px'>"+acR0+" <span style='color:#888;font-size:10px;font-weight:400'>/ "+r0prog+"</span></div><div class='lbl'>&ge; R0 real/prog</div></div>"+
-    "<div class='cs'><div class='num' style='color:#3B6D11'>"+acR1+"</div><div class='lbl'>&ge; R1</div></div>"+
-    "<div class='cs'><div class='num' style='color:#1D9E75'>"+rf+"</div><div class='lbl'>RF</div></div>";
+    card(ac.sog,"&ge; Sello obra gruesa","#5F7185")+
+    card(ac.sg,"&ge; Sello gris","#185FA5")+
+    card(ac.r0+" <span style='color:#888;font-size:10px;font-weight:400'>/ "+r0prog+"</span>","&ge; R0 real/prog","#BA7517",true)+
+    card(ac.fr1,"&ge; Fichaje R1","#12857C")+
+    card(ac.r1,"&ge; R1","#3B6D11")+
+    card(ac.frf,"&ge; Fichaje RF","#0B6B60")+
+    card(rf,"RF","#1D9E75");
   document.getElementById("bpf").style.width=pct+"%";
   document.getElementById("ptxt").textContent="Avance a RF: "+pct+"% ("+rf+" de "+tot+")";
 }
